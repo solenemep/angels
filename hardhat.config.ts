@@ -26,7 +26,15 @@ const accountsMainnet = PRIVATE_KEY
   : {mnemonic: MNEMONIC};
 
 module.exports = {
-  solidity: "0.8.10",
+  solidity: {
+    version: "0.8.10",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
 
   networks: {
     hardhat: {

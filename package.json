@@ -8,8 +8,11 @@
   "scripts": {
     "nft:deploy:development": "hardhat run scripts/deploy.ts",
     "nft:deploy:rinkeby": "hardhat run --network rinkeby scripts/deploy.ts",
-    "nft:verify:rinkeby": "hardhat verify --network rinkeby 0x966dB4b3C73a54E4Ce2860944D3af8b692161eF3 MintPass MP test 9500 10000000000000000 0 200000",
+    "nft:verify:rinkeby:MintPass": "hardhat verify --network rinkeby 0x9280593860a89DCce69bCB8543AAE6F5f39f2a63 MintPass MP test 9500 10 0 2000 100 0x6168499c0cFfCaCD319c818142124B7A15E857ab 0x01BE23585060835E02B77ef475b0Cc51aA1e0709 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc",
+    "nft:verify:rinkeby:Scion": "hardhat verify --network rinkeby 0x0F48E19cDb79B3E994C0AE03F9dc2fb6239236d4 2054 0x6168499c0cFfCaCD319c818142124B7A15E857ab 0x01BE23585060835E02B77ef475b0Cc51aA1e0709 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc 0x9280593860a89DCce69bCB8543AAE6F5f39f2a63 0xE22C5Ad40E64CF7840EF36fa298fcd8Eb5bfd01b 0x72DF4eeB5F5f002a5030ebCBe95F9C4C768a8C15",
     "nft:deploy:mainnet": "hardhat run --network mainnet scripts/deploy.ts",
+    "nft:verify:rinkeby:Keter": "hardhat verify --contract contracts/Keter.sol:Keter --network rinkeby 0x72DF4eeB5F5f002a5030ebCBe95F9C4C768a8C15",
+    "nft:verify:rinkeby:Soul": "hardhat verify --contract contracts/Soul.sol:Soul --network rinkeby 0xE22C5Ad40E64CF7840EF36fa298fcd8Eb5bfd01b",
     "compile": "hardhat compile",
     "test": "hardhat test"
   },
@@ -28,13 +31,14 @@
   },
   "homepage": "",
   "dependencies": {
+    "@chainlink/contracts": "^0.4.0",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^4.3.3",
     "@types/chai-as-promised": "^7.1.5",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
-    "mocha": "^9.1.3",
     "ethereum-waffle": "^3.4.0",
-    "@nomiclabs/hardhat-waffle": "^2.0.1"
+    "mocha": "^9.1.3"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.4",
