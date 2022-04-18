@@ -1,0 +1,57 @@
+import * as dotenv from 'dotenv'
+
+dotenv.config();
+
+import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-etherscan";
+
+/**
+ * @type import('hardhat/config').HardhatUserConfig
+ */
+
+const {
+  ALCHEMY_KEY,
+  MNEMONIC,
+  ETHERSCAN_API_KEY,
+  PRIVATE_KEY,
+  PRIVATE_KEY_TESTNET
+} = process.env;
+
+const accountsTestnet = PRIVATE_KEY_TESTNET
+  ? [PRIVATE_KEY_TESTNET]
+  : {mnemonic: MNEMONIC};
+
+const accountsMainnet = PRIVATE_KEY
+  ? [PRIVATE_KEY]
+  : {mnemonic: MNEMONIC};
+
+module.exports = {
+  solidity: "0.8.10",
+
+  networks: {
+    hardhat: {
+      forking: {
+        url: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`,
+        accounts: accountsTestnet,
+        //blockNumber: 13952971
+      }
+    },
+    mainnet: {
+        url: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`,
+       // accounts: accountsMainnet,
+    },
+    rinkeby: {
+        url: `https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_KEY}`,
+        accounts: accountsTestnet,
+    },
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: ETHERSCAN_API_KEY
+  },
+  mocha: {
+    timeout: 50000
+  }
+
+};
