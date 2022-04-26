@@ -42,6 +42,11 @@ async function main() {
   (await mintPasses.setScionAddress(scion.address)).wait();
   (await soul.transfer(scion.address, "1000000000000000000000000000")).wait();
 
+  const Archangel = await hre.ethers.getContractFactory("Archangel");
+  const archangel = await Archangel.deploy(soul.address);
+
+  console.log("Archangel address:", archangel.address);
+
   // const chainlink = await Soul.attach("0x01BE23585060835E02B77ef475b0Cc51aA1e0709");
   // await chainlink.transfer(scion.address, "2000000000000000000");
 }

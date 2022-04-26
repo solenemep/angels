@@ -28,6 +28,16 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface COORDINATOR;
     LinkTokenInterface LINKTOKEN;
 
+    /**
+        @dev tokenId to nesting start time (0 = not nesting).
+     */
+    mapping(uint256 => uint256) private nestingStarted;
+
+    /**
+        @dev Cumulative per-token nesting, excluding the current period.
+     */
+    mapping(uint256 => uint256) private nestingTotal;
+
     // Your subscription ID.
     uint64 s_subscriptionId;
 
@@ -35,6 +45,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     uint32 callbackGasLimit = 500000;
     uint256 rerollPrice = 1e18;
+    uint256 priceForRarityInSouls = 100e18;
 
     // The default is 3, but you can set this higher.
     uint16 requestConfirmations = 3;
@@ -99,6 +110,11 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     mapping(uint256 => Scions) public scionsData;
     // Burn creates FT Souls
 
+    event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, uint256 _previousRarity, uint256 _newRarity, uint256 _timestamp);
+    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 indexed _mintPassId, uint256 mintPassRarity, uint256 _timestamp);
+    event Nested(uint256 indexed tokenId);
+    event Unnested(uint256 indexed tokenId);
+
     constructor(uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash, address _mintingPass, address _soul, address _keter) ERC721("SCION", "SCION") VRFConsumerBaseV2(vrfCoordinator) {
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
         LINKTOKEN = LinkTokenInterface(link);
@@ -107,6 +123,64 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         mintingPass = MintPasses(_mintingPass);
         soul = IERC20(_soul);
         keter = IERC20(_keter);
+    }
+
+    modifier onlyApprovedOrOwner(uint256 tokenId) {
+        require(
+            ownerOf(tokenId) == _msgSender() ||
+                getApproved(tokenId) == _msgSender(),
+            "ERC721ACommon: Not approved nor owner"
+        );
+        _;
+    }
+
+    function nestingPeriod(uint256 tokenId) external view returns (bool nesting, uint256 current, uint256 total) {
+        uint256 start = nestingStarted[tokenId];
+        if (start != 0) {
+            nesting = true;
+            current = block.timestamp - start;
+        }
+        total = current + nestingTotal[tokenId];
+    }
+
+    /**
+        @notice Whether nesting is currently allowed.
+        @dev If false then nesting is blocked, but unnesting is always allowed.
+     */
+    bool public nestingOpen = false;
+
+    /**
+        @notice Toggles the `nestingOpen` flag.
+     */
+    function setNestingOpen(bool open) external onlyOwner {
+        nestingOpen = open;
+    }
+
+    function toggleNesting(uint256[] calldata tokenIds) external {
+        uint256 n = tokenIds.length;
+        for (uint256 i = 0; i < n; ++i) {
+            toggleNesting(tokenIds[i]);
+        }
+    }
+
+    /**
+        @notice Changes the Angel's nesting status.
+    */
+    function toggleNesting(uint256 tokenId) internal onlyApprovedOrOwner(tokenId) {
+        uint256 start = nestingStarted[tokenId];
+        if (start == 0) {
+            require(nestingOpen, "Angels: nesting closed");
+            nestingStarted[tokenId] = block.timestamp;
+            emit Nested(tokenId);
+        } else {
+            nestingTotal[tokenId] += block.timestamp - start;
+            nestingStarted[tokenId] = 0;
+            emit Unnested(tokenId);
+        }
+    }
+
+    function setPriceInSoulsForRarity(uint256 _priceInSouls) external onlyOwner {
+        priceForRarityInSouls = _priceInSouls;
     }
 
     /**
@@ -266,6 +340,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                 scionsData[tokenId].sigil = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.RARE) ? _previousRarity : AssetRarity.RARE);
             }
             
+            emit Reroll(tokenId, assetId, uint256(_previousRarity), uint256(AssetRarity.RARE), block.timestamp);
         } else if(randomNumber >= 70 && randomNumber <= 95) {
             if(assetId == 4) {
                 scionsData[tokenId].wings = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.EPIC_RARE) ? _previousRarity : AssetRarity.EPIC_RARE);
@@ -278,6 +353,8 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
             if(assetId == 6) {
                 scionsData[tokenId].sigil = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.EPIC_RARE) ? _previousRarity : AssetRarity.EPIC_RARE);
             }
+
+            emit Reroll(tokenId, assetId, uint256(_previousRarity), uint256(AssetRarity.EPIC_RARE), block.timestamp);
         } else {
             if(assetId == 4) {
                 scionsData[tokenId].wings = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.LEGENDARY) ? _previousRarity : AssetRarity.LEGENDARY);
@@ -290,6 +367,8 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
             if(assetId == 6) {
                 scionsData[tokenId].sigil = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.LEGENDARY) ? _previousRarity : AssetRarity.LEGENDARY);
             }
+
+            emit Reroll(tokenId, assetId, uint256(_previousRarity), uint256(AssetRarity.LEGENDARY), block.timestamp);
         }
     }
 
@@ -303,7 +382,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         require(assetId <= 6);
 
         keter.safeTransferFrom(msg.sender, address(this), rerollPrice);
-        requestRandomWords(tokenId, int256(assetId), -1, 1);
+        requestRandomWords(tokenId, int256(assetId), -1, 2);
     }
 
     function claimScion(uint256 tokenId) public {
@@ -340,6 +419,8 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         }
         
         _safeMint(msg.sender, _tokenIdTracker.current());
+        emit ScionClaimed(msg.sender, _tokenIdTracker.current(), tokenId, uint256(rarity), block.timestamp);
+
         _tokenIdTracker.increment();
     }
     
@@ -350,16 +431,20 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     function burnForSoul(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
-       _burn(tokenId);
 
-       soul.safeTransfer(msg.sender, 100e18);
+        soul.safeTransfer(msg.sender, rarity(tokenId) * priceForRarityInSouls);
+       _burn(tokenId); // add new burn with scionsData
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
         return "ipfs://";
     }
 
-    function rarity(uint256 tokenId) external view returns (uint256 _rarity) {
+    function priceInSouls(uint256 tokenId) public view returns (uint256 price) {
+        return rarity(tokenId) * priceForRarityInSouls;
+    }
+
+    function rarity(uint256 tokenId) public view returns (uint256 _rarity) {
 
         _rarity += uint256(scionsData[tokenId].background.rarity) + 1;
         _rarity += uint256(scionsData[tokenId].halo.rarity) + 1;

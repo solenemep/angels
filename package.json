@@ -8,11 +8,12 @@
   "scripts": {
     "nft:deploy:development": "hardhat run scripts/deploy.ts",
     "nft:deploy:rinkeby": "hardhat run --network rinkeby scripts/deploy.ts",
-    "nft:verify:rinkeby:MintPass": "hardhat verify --network rinkeby 0x9280593860a89DCce69bCB8543AAE6F5f39f2a63 MintPass MP test 9500 10 0 2000 100 0x6168499c0cFfCaCD319c818142124B7A15E857ab 0x01BE23585060835E02B77ef475b0Cc51aA1e0709 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc",
-    "nft:verify:rinkeby:Scion": "hardhat verify --network rinkeby 0x0F48E19cDb79B3E994C0AE03F9dc2fb6239236d4 2054 0x6168499c0cFfCaCD319c818142124B7A15E857ab 0x01BE23585060835E02B77ef475b0Cc51aA1e0709 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc 0x9280593860a89DCce69bCB8543AAE6F5f39f2a63 0xE22C5Ad40E64CF7840EF36fa298fcd8Eb5bfd01b 0x72DF4eeB5F5f002a5030ebCBe95F9C4C768a8C15",
+    "nft:verify:rinkeby:MintPass": "hardhat verify --network rinkeby 0xF488770478871d039b5324a301Df4b8d18bDC90F MintPass MP test 9500 10 0 2000 100 0x6168499c0cFfCaCD319c818142124B7A15E857ab 0x01BE23585060835E02B77ef475b0Cc51aA1e0709 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc",
+    "nft:verify:rinkeby:Scion": "hardhat verify --network rinkeby 0x893C415b550f31EAD47B4C79e6D698E603763312 2054 0x6168499c0cFfCaCD319c818142124B7A15E857ab 0x01BE23585060835E02B77ef475b0Cc51aA1e0709 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc 0xe46A7214934e43d8E5C62f41567ac33C772D2f70 0x0Ea98D00E1CA05312c6a26BBcF41E19122fb6268 0x999a588141925a1eD2588F93fa4112716d6455CA",
     "nft:deploy:mainnet": "hardhat run --network mainnet scripts/deploy.ts",
-    "nft:verify:rinkeby:Keter": "hardhat verify --contract contracts/Keter.sol:Keter --network rinkeby 0x72DF4eeB5F5f002a5030ebCBe95F9C4C768a8C15",
-    "nft:verify:rinkeby:Soul": "hardhat verify --contract contracts/Soul.sol:Soul --network rinkeby 0xE22C5Ad40E64CF7840EF36fa298fcd8Eb5bfd01b",
+    "nft:verify:rinkeby:Keter": "hardhat verify --contract contracts/Keter.sol:Keter --network rinkeby 0xAD7E0c7f74CC8436Efb1eE3764868f996eBd9aF2",
+    "nft:verify:rinkeby:Soul": "hardhat verify --contract contracts/Soul.sol:Soul --network rinkeby 0x95aa5a6D96749Ce1278da0B6A04668ae526CCE00",
+    "nft:verify:rinkeby:Archangel": "hardhat verify --contract contracts/Archangels.sol:Archangel --network rinkeby 0x18A3b7bE8c15A33aFADD57BEb99744D286C6cEa2 0x0Ea98D00E1CA05312c6a26BBcF41E19122fb6268",
     "compile": "hardhat compile",
     "test": "hardhat test"
   },
