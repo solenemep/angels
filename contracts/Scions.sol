@@ -110,7 +110,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     mapping(uint256 => Scions) public scionsData;
     // Burn creates FT Souls
 
-    event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, uint256 _previousRarity, uint256 _newRarity, uint256 _timestamp);
+    event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _previousRarity, int256 _newRarity, uint256 _timestamp);
     event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 indexed _mintPassId, uint256 mintPassRarity, uint256 _timestamp);
     event Nested(uint256 indexed tokenId);
     event Unnested(uint256 indexed tokenId);
@@ -304,19 +304,15 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                 uint256 randomNumber = (randomWords[0] % 100);
                 if(requestIdToAssetId[requestId] >= 4) {
                     if(requestIdToAssetId[requestId] == 4 && scionsData[requestIdToTokenId[requestId]].wings.hasIt) {
-                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], scionsData[requestIdToTokenId[requestId]].wings.rarity);
-                    } 
-
-                    if(requestIdToAssetId[requestId] == 5 && scionsData[requestIdToTokenId[requestId]].hands.hasIt) {
-                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], scionsData[requestIdToTokenId[requestId]].hands.rarity);
-                    }
-
-                    if(requestIdToAssetId[requestId] == 6 && scionsData[requestIdToTokenId[requestId]].sigil.hasIt) {
-                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], scionsData[requestIdToTokenId[requestId]].sigil.rarity);
-                    }
-
-                    if(randomNumber > 95) {
-                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], AssetRarity.COMMON);
+                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], int256(uint256(scionsData[requestIdToTokenId[requestId]].wings.rarity)));
+                    } else if(requestIdToAssetId[requestId] == 5 && scionsData[requestIdToTokenId[requestId]].hands.hasIt) {
+                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], int256(uint256(scionsData[requestIdToTokenId[requestId]].hands.rarity)));
+                    } else if(requestIdToAssetId[requestId] == 6 && scionsData[requestIdToTokenId[requestId]].sigil.hasIt) {
+                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], int256(uint256(scionsData[requestIdToTokenId[requestId]].sigil.rarity)));
+                    } else if(randomNumber > 95) {
+                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], -1);
+                    } else {
+                        emit Reroll(uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], -1, -1, block.timestamp);
                     }
                 }
             }
@@ -326,49 +322,49 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     }
 
     // rarity should not be less then it was before
-    function rerollCalculate(uint256 randomNumber, uint256 assetId, uint256 tokenId, AssetRarity _previousRarity) private {
+    function rerollCalculate(uint256 randomNumber, uint256 assetId, uint256 tokenId, int256 _previousRarity) private {
         if(randomNumber < 70) {
             if(assetId == 4) {
-                scionsData[tokenId].wings = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.RARE) ? _previousRarity : AssetRarity.RARE);
+                scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
             }
 
             if(assetId == 5) {
-                scionsData[tokenId].hands = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.RARE) ? _previousRarity : AssetRarity.RARE);
+                scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
             }
 
             if(assetId == 6) {
-                scionsData[tokenId].sigil = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.RARE) ? _previousRarity : AssetRarity.RARE);
+                scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
             }
             
-            emit Reroll(tokenId, assetId, uint256(_previousRarity), uint256(AssetRarity.RARE), block.timestamp);
+            emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.RARE)), block.timestamp);
         } else if(randomNumber >= 70 && randomNumber <= 95) {
             if(assetId == 4) {
-                scionsData[tokenId].wings = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.EPIC_RARE) ? _previousRarity : AssetRarity.EPIC_RARE);
+                scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
             }
 
             if(assetId == 5) {
-                scionsData[tokenId].hands = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.EPIC_RARE) ? _previousRarity : AssetRarity.EPIC_RARE);
+                scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
             }
 
             if(assetId == 6) {
-                scionsData[tokenId].sigil = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.EPIC_RARE) ? _previousRarity : AssetRarity.EPIC_RARE);
+                scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
             }
 
-            emit Reroll(tokenId, assetId, uint256(_previousRarity), uint256(AssetRarity.EPIC_RARE), block.timestamp);
+            emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.EPIC_RARE)), block.timestamp);
         } else {
             if(assetId == 4) {
-                scionsData[tokenId].wings = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.LEGENDARY) ? _previousRarity : AssetRarity.LEGENDARY);
+                scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
             }
 
             if(assetId == 5) {
-                scionsData[tokenId].hands = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.LEGENDARY) ? _previousRarity : AssetRarity.LEGENDARY);
+                scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
             }
 
             if(assetId == 6) {
-                scionsData[tokenId].sigil = Asset(true, uint256(_previousRarity) > uint256(AssetRarity.LEGENDARY) ? _previousRarity : AssetRarity.LEGENDARY);
+                scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
             }
 
-            emit Reroll(tokenId, assetId, uint256(_previousRarity), uint256(AssetRarity.LEGENDARY), block.timestamp);
+            emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.LEGENDARY)), block.timestamp);
         }
     }
 
