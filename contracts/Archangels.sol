@@ -10,13 +10,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "./Soul.sol";
 
 
 contract Archangel is Ownable, ERC721Enumerable {
     // Mint, receives the minting pass NFT, burns it to create a Scion  
     using Counters for Counters.Counter;
     using Strings for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for Soul;
 
     // Optional mapping for token URIs
     mapping(uint256 => string) private _tokenURIs;
@@ -34,14 +35,16 @@ contract Archangel is Ownable, ERC721Enumerable {
     mapping(uint256 => uint256) private nestingTotal;
 
     uint256 priceInSouls = 444e18;
-    IERC20 public soul;
+    uint256 latestClaimed;
+    Soul public soul;
 
     event ArchangelMinted(address indexed user, uint256 indexed tokenId, uint256 timestamp);
+    event ArchangelClaimed(address indexed user, uint256 indexed tokenId, uint256 timestamp);
     event Nested(uint256 indexed tokenId);
     event Unnested(uint256 indexed tokenId);
 
     constructor(address _soul) ERC721("Archangel", "ARCH") {
-        soul = IERC20(_soul);
+        soul = Soul(_soul);
     }
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {
@@ -123,6 +126,16 @@ contract Archangel is Ownable, ERC721Enumerable {
         return super.tokenURI(tokenId);
     }
 
+    function mint(string memory _tokenURI) public onlyOwner {
+        require(_tokenIdTracker.current() <= 6, "Total Archangels amount reached");
+        _mint(address(this), _tokenIdTracker.current());
+
+        _setTokenURI(_tokenIdTracker.current(), _tokenURI);
+        emit ArchangelMinted(msg.sender, _tokenIdTracker.current(), block.timestamp);
+
+        _tokenIdTracker.increment();
+    }
+
     /**
      * @dev Sets `_tokenURI` as the tokenURI of `tokenId`.
      *
@@ -154,13 +167,16 @@ contract Archangel is Ownable, ERC721Enumerable {
     }
 
     function claimArchangel() public {
-        require(_tokenIdTracker.current() <= 6, "Total Archangels amount reached");
-        soul.safeTransferFrom(msg.sender, address(0), priceInSouls);
+        require(latestClaimed <= 6, "Total Archangels amount reached");
+        soul.safeTransferFrom(msg.sender, address(this), priceInSouls);
+        soul.burn(priceInSouls);
 
-        _safeMint(msg.sender, _tokenIdTracker.current());
-        emit ArchangelMinted(msg.sender, _tokenIdTracker.current(), block.timestamp);
+        emit ArchangelClaimed(msg.sender, latestClaimed, block.timestamp);
+        safeTransferFrom(address(this), msg.sender, latestClaimed++);
+    }
 
-        _tokenIdTracker.increment();
+    function archangelsLeft() public view returns(uint256) {
+        return 6 - latestClaimed + 1;
     }
     
     // Sets the uri, url of ipfs

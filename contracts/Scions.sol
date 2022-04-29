@@ -433,7 +433,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
-        return "ipfs://";
+        return "";
     }
 
     function priceInSouls(uint256 tokenId) public view returns (uint256 price) {
