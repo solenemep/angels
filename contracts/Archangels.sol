@@ -172,7 +172,7 @@ contract Archangel is Ownable, ERC721Enumerable {
         soul.burn(priceInSouls);
 
         emit ArchangelClaimed(msg.sender, latestClaimed, block.timestamp);
-        safeTransferFrom(address(this), msg.sender, latestClaimed++);
+        _safeTransfer(address(this), msg.sender, latestClaimed++, "");
     }
 
     function archangelsLeft() public view returns(uint256) {
@@ -185,6 +185,6 @@ contract Archangel is Ownable, ERC721Enumerable {
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
-        return "ipfs://";
+        return "";
     }
 }

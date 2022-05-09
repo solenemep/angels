@@ -109,9 +109,15 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         scionContract = _scionContract;
     }
 
-    function setStart() external onlyOwner {
+    function setStart(uint256 _auctionDuration) external onlyOwner {
         active = true;
         start = block.timestamp;
+        auctionDuration = _auctionDuration * 1 minutes;
+    }
+
+    function finishAuction() external onlyOwner {
+        active = false;
+        auctionDuration = block.timestamp - start;
     }
 
     function setActive(bool _active) external onlyOwner {
