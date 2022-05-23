@@ -111,11 +111,12 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     // Burn creates FT Souls
 
     event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _previousRarity, int256 _newRarity, uint256 _timestamp);
+    event AssetGenerated(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _rarity, uint256 _timestamp);
     event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 indexed _mintPassId, uint256 mintPassRarity, uint256 _timestamp);
     event Nested(uint256 indexed tokenId);
     event Unnested(uint256 indexed tokenId);
 
-    constructor(uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash, address _mintingPass, address _soul, address _keter) ERC721("SCION", "SCION") VRFConsumerBaseV2(vrfCoordinator) {
+    constructor(uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash, address _mintingPass, address _soul, address _keter, string memory name, string memory symbol) ERC721(name, symbol) VRFConsumerBaseV2(vrfCoordinator) {
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
         LINKTOKEN = LinkTokenInterface(link);
         keyHash = _keyHash;
@@ -293,12 +294,17 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                 }
 
                 scionsData[requestIdToTokenId[requestId]].background = Asset(true, rarityTemp[requestIdToTokenId[requestId]][0]);
+                emit AssetGenerated(requestIdToTokenId[requestId], 0, int(uint(rarityTemp[requestIdToTokenId[requestId]][0])), block.timestamp);
                 scionsData[requestIdToTokenId[requestId]].halo = Asset(true, rarityTemp[requestIdToTokenId[requestId]][1]);
+                emit AssetGenerated(requestIdToTokenId[requestId], 1, int(uint(rarityTemp[requestIdToTokenId[requestId]][1])), block.timestamp);
                 scionsData[requestIdToTokenId[requestId]].head = Asset(true, rarityTemp[requestIdToTokenId[requestId]][2]);
+                emit AssetGenerated(requestIdToTokenId[requestId], 2, int(uint(rarityTemp[requestIdToTokenId[requestId]][2])), block.timestamp);
                 scionsData[requestIdToTokenId[requestId]].body = Asset(true, rarityTemp[requestIdToTokenId[requestId]][3]);
-                
+                emit AssetGenerated(requestIdToTokenId[requestId], 3, int(uint(rarityTemp[requestIdToTokenId[requestId]][3])), block.timestamp);
+
                 if(assetsAmount == 5) {
-                    scionsData[requestIdToTokenId[requestId]].wings = Asset(true, rarityTemp[requestIdToTokenId[requestId]][3]);
+                    scionsData[requestIdToTokenId[requestId]].wings = Asset(true, rarityTemp[requestIdToTokenId[requestId]][4]);
+                    emit AssetGenerated(requestIdToTokenId[requestId], 4, int(uint(rarityTemp[requestIdToTokenId[requestId]][4])), block.timestamp);
                 }
             } else if(requestIdToAssetId[requestId] >= 0) {
                 uint256 randomNumber = (randomWords[0] % 100);
