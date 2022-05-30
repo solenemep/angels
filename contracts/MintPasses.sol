@@ -54,6 +54,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     }
 
     event BidPlaced(address indexed bidder, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
+    event BidUpdated(address indexed bidder, uint256 previousAmount, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
     event Refund(address indexed bidder, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
     event PassClaimed(address indexed bidder, uint256 indexed passId, uint256 indexed bidId, uint256 timestamp);
 
@@ -109,9 +110,9 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         scionContract = _scionContract;
     }
 
-    function setStart(uint256 _auctionDuration) external onlyOwner {
+    function setStart(uint256 _auctionDuration, uint256 _auctionStart) external onlyOwner {
         active = true;
-        start = block.timestamp;
+        start = _auctionStart;
         auctionDuration = _auctionDuration * 1 minutes;
     }
 
@@ -186,6 +187,18 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         }
 
         lastBidAmount = bidValue;
+    }
+
+    function updateBid(uint bidId, uint newBidValue) external payable onlyActive nonReentrant {
+        require(newBidValue <= bids[bidId].bidValue + msg.value, "New bid amount must be bigger then original");
+        require(msg.value > 0, "There is not enough funds to update bid");
+
+        emit BidUpdated(_msgSender(), bids[bidId].bidValue, newBidValue, bidId,  block.timestamp);
+        bids[bidId] = Bid(bidId, newBidValue, _msgSender(), block.timestamp);
+
+        if(newBidValue > lastBidAmount) {
+            lastBidAmount = newBidValue;
+        }
     }
 
     /**

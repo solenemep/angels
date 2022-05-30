@@ -74,13 +74,13 @@ async function main() {
 
   console.log("Keter verified");
 
-  verifyScript = verify.buildVerifyScript('Scion', keter.address, hre.network.name, `${args.SUBSCRIPTION_ID} ${args.VRF_COORDINATOR_ADDRESS} ${args.LINK_TOKEN_ADDRESS} ${args.VRF_KEY_HASH} ${mintPasses.address} ${soul.address} ${keter.address} ${args.SCION_NAME} ${args.SCION_SYMBOL}`);
+  verifyScript = verify.buildVerifyScript('Scion', scion.address, hre.network.name, `${args.SUBSCRIPTION_ID} ${args.VRF_COORDINATOR_ADDRESS} ${args.LINK_TOKEN_ADDRESS} ${args.VRF_KEY_HASH} ${mintPasses.address} ${soul.address} ${keter.address} ${args.SCION_NAME} ${args.SCION_SYMBOL}`);
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
 
   console.log("Scion verified");
 
-  verifyScript = verify.buildVerifyScript('Archangel', keter.address, hre.network.name, `${soul.address}`);
+  verifyScript = verify.buildVerifyScript('Archangel', archangel.address, hre.network.name, `${soul.address}`);
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
 
