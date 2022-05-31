@@ -189,7 +189,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
             bidsArray.push(bids[latestBidId]);
             latestBidId++;
 
-            emit BidPlaced(_msgSender(), msg.value, latestBidId - 1,  block.timestamp);
+            emit BidPlaced(_msgSender(), bidValue, latestBidId - 1,  block.timestamp);
         }
 
         lastBidAmount = bidValue;
