@@ -35,6 +35,9 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
     mapping (uint256 => Bid) public bids;
     mapping (address => uint256[]) public userBidIds;
+    mapping (address => mapping (uint256 => uint256)) public userBidIndexes;
+    mapping (address => mapping (uint256 => uint256)) public bidIndexes;
+
     // mapping (uint256 => Rarity) public tokenRarity; // Could be done like this
     struct MintPass {
         bool claimed;
@@ -54,6 +57,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     }
 
     event BidPlaced(address indexed bidder, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
+    event BidCanceled(address indexed bidder, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
     event BidUpdated(address indexed bidder, uint256 previousAmount, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
     event Refund(address indexed bidder, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
     event PassClaimed(address indexed bidder, uint256 indexed passId, uint256 indexed bidId, uint256 timestamp);
@@ -178,8 +182,10 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
             }
 
             bids[latestBidId] = Bid(latestBidId, bidValue, _msgSender(), block.timestamp);
+            userBidIndexes[_msgSender()][latestBidId] = userBidIds[_msgSender()].length - 1;
             userBidIds[_msgSender()].push(latestBidId);
 
+            bidIndexes[_msgSender()][latestBidId] = bidsArray.length - 1;
             bidsArray.push(bids[latestBidId]);
             latestBidId++;
 
@@ -199,6 +205,21 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         if(newBidValue > lastBidAmount) {
             lastBidAmount = newBidValue;
         }
+    }
+
+    function cancelBid(uint bidId) external onlyActive nonReentrant {
+        uint256 _bidValue = bids[bidId].bidValue;
+
+        delete bids[bidId];
+
+        userBidIds[_msgSender()][userBidIndexes[_msgSender()][bidId]] = userBidIds[_msgSender()][userBidIds[_msgSender()].length - 1];
+        userBidIds[_msgSender()].pop();
+
+        bidsArray[bidIndexes[_msgSender()][bidId]] = bidsArray[bidsArray.length - 1];
+        bidsArray.pop();
+
+        payable(_msgSender()).transfer(_bidValue);
+        emit BidCanceled(_msgSender(), _bidValue, bidId, block.timestamp);
     }
 
     /**
