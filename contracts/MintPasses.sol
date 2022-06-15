@@ -28,15 +28,24 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     uint256 public totalBids; // Not used
     uint256 public latestBidId = 1;
     uint256 public start;
+    uint256 public minimumBidAmount;
     uint256 public auctionDuration;
-    uint256 public lastBidAmount; //get the highest bid
     bool public active;
     address public scionContract;
+    address public treasury;
+
+    bytes32 public constant STANDARD = keccak256("STANDARD");
+    bytes32 public constant BRONZE = keccak256("BRONZE");
+    bytes32 public constant SILVER = keccak256("SILVER");
+    bytes32 public constant GOLD = keccak256("GOLD");
+    bytes32 public constant DIAMOND = keccak256("DIAMOND");
+    bytes32 public constant CELESTIAL = keccak256("CELESTIAL");
 
     mapping (uint256 => Bid) public bids;
     mapping (address => uint256[]) public userBidIds;
     mapping (address => mapping (uint256 => uint256)) public userBidIndexes;
     mapping (address => mapping (uint256 => uint256)) public bidIndexes;
+    mapping (uint256 => bytes32) public mintingPassClass;
 
     // mapping (uint256 => Rarity) public tokenRarity; // Could be done like this
     struct MintPass {
@@ -44,6 +53,13 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         bool receives;
     }
 
+    struct Class {
+        uint256 bottom;
+        uint256 top;
+        uint256 timestamp;
+    }
+
+    mapping(bytes32 => Class) public classes;
     mapping(address => MintPass) public promotionPasses;
     address[] public promotionMintingAddresses;
 
@@ -59,7 +75,6 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     event BidPlaced(address indexed bidder, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
     event BidCanceled(address indexed bidder, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
     event BidUpdated(address indexed bidder, uint256 previousAmount, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
-    event Refund(address indexed bidder, uint256 indexed amount, uint256 indexed bidId, uint256 timestamp);
     event PassClaimed(address indexed bidder, uint256 indexed passId, uint256 indexed bidId, uint256 timestamp);
 
     modifier onlyActive() {
@@ -95,7 +110,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         totalBidsLimit = _totalBidsLimit;
         //start = block.timestamp;
         auctionDuration = _auctionDuration;
-        lastBidAmount = _minimumBidAmount;
+        minimumBidAmount = _minimumBidAmount;
     }
 
     function getAllBids() public view returns (Bid[] memory) {
@@ -104,6 +119,51 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
     function getUserBidIds(address _address) public view returns (uint256[] memory) {
         return userBidIds[_address];
+    }
+
+    function getBidClass(uint256 _bidId) public view returns (bytes32) {
+        uint256 bidValue = bids[_bidId].bidValue;
+
+        if(bidValue < classes[STANDARD].bottom) {
+            return 0x00;
+        }
+
+        if(bidValue < classes[STANDARD].top) {
+            return STANDARD;
+        } else if(bidValue >= classes[SILVER].bottom && bidValue < classes[SILVER].top) {
+            return SILVER;
+        } else if(bidValue >= classes[GOLD].bottom && bidValue < classes[GOLD].top) {
+            return GOLD;
+        } else if(bidValue >= classes[DIAMOND].bottom && bidValue < classes[DIAMOND].top) {
+            return DIAMOND;
+        } else if(bidValue >= classes[CELESTIAL].bottom && bidValue < classes[CELESTIAL].top) {
+            return CELESTIAL;
+        }
+    }
+
+    function getBidsClasses() public view returns (bytes32[] memory) {
+       bytes32[] memory result = new bytes32[](userBidIds[_msgSender()].length);
+
+       for(uint y = 0; y < userBidIds[_msgSender()].length; y++) {
+            result[y] = getBidClass(userBidIds[_msgSender()][y]);
+       }
+
+       return result;
+    }
+    
+    function setClasses(bytes32[] memory _class, uint256[] memory _bottom, uint256[] memory _top, uint256[] memory _timestamp) public {
+        require(_class.length == _bottom.length && _bottom.length == _top.length && _top.length == _timestamp.length);
+        for(uint i = 0; i < _class.length; i++) {
+            setClass(_class[i], _bottom[i], _top[i], _timestamp[i]);
+        }
+    }
+
+    function setClass(bytes32 _class, uint256 _bottom, uint256 _top, uint256 _timestamp) public onlyOwner {
+        classes[_class] = Class(_bottom, _top, _timestamp);
+    }
+
+    function setTreasury(address _treasury) public onlyOwner {
+        treasury = _treasury;
     }
 
     function setTotalLimit(uint256 _totalBidsLimit) external onlyOwner {
@@ -122,7 +182,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
     function finishAuction() external onlyOwner {
         active = false;
-        auctionDuration = block.timestamp - start;
+        auctionDuration = block.timestamp > start ? block.timestamp - start : 0;
     }
 
     function setActive(bool _active) external onlyOwner {
@@ -137,23 +197,33 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         _baseTokenURI = baseTokenURI;
     }
 
+    function userAvailableToClaim() public view returns(uint256) {
+        uint256 result;
+
+        for(uint i = 0; i < userBidIds[_msgSender()].length; i++) {
+            if(getBidClass(userBidIds[_msgSender()][i]) != 0x00) {
+                result++;
+            }
+        }
+
+        return result;
+    }
+
     function claimPass() external onlyWhenFinished {
         // This assumes that the auction overpassed the total bids limit
-        require(userBidIds[_msgSender()].length > 0 && (latestBidId <= totalBidsLimit || userBidIds[_msgSender()][userBidIds[_msgSender()].length-1] > latestBidId - totalBidsLimit), "User didn't win auction");
+        require(userBidIds[_msgSender()].length > 0 && userAvailableToClaim() > 0 , "User didn't win an auction");
 
         // A user could have thousands of bids, may provoke a gas problem here
         for(uint i = 0; i < userBidIds[_msgSender()].length; i++) {
-  
-            if(bids[userBidIds[_msgSender()][i]].bidValue > 0 && (latestBidId <= totalBidsLimit || userBidIds[_msgSender()][i] > latestBidId - totalBidsLimit)) {
+            if(bids[userBidIds[_msgSender()][i]].bidValue > 0 && getBidClass(userBidIds[_msgSender()][i]) != 0x00) {
+                mintingPassClass[_tokenIdTracker.current()] = getBidClass(userBidIds[_msgSender()][i]);
 
+                uint256 _bidValue = bids[userBidIds[_msgSender()][i]].bidValue;
                 bids[userBidIds[_msgSender()][i]].bidValue = 0;
-        
-                // id = 20000   20000  - (latestBidId - totalBidsLimit) = 20000 - (20000 - 9500) = 9500
-                // id = 10000   10000  - (latestBidId - totalBidsLimit) = 15000 - (20000 - 9500) = 4500
-                uint256 position = latestBidId <= totalBidsLimit ? userBidIds[_msgSender()][i] : userBidIds[_msgSender()][i] - (latestBidId - totalBidsLimit);
-                Rarity rarity = _calculateRarityForBids(position);
+
+                payable(treasury).transfer(_bidValue);
+
                 _safeMint(_msgSender(), _tokenIdTracker.current());
-                mintingPassRarity[_tokenIdTracker.current()] = rarity;
 
                 _tokenIdTracker.increment();
 
@@ -163,36 +233,21 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     }
 
     function bid(uint bidsAmount, uint bidValue) external payable onlyActive nonReentrant {
-        require(bidValue > lastBidAmount, "There is not enough funds to make a bid");
+        require(bidValue > minimumBidAmount, "Bid value must be bigger then minimum bid");
         require(msg.value >= bidValue * bidsAmount, "There is not enough funds to make bids");
-        require(bidsAmount <= 20, "Too many bids during 1 transaction");
+        require(bidsAmount <= 30, "Too many bids during 1 transaction");
         
         for(uint i = 0; i < bidsAmount; i++) {
-            if(latestBidId > totalBidsLimit) {
-                Bid storage bid = bids[latestBidId - totalBidsLimit]; 
-                
-                uint value = bid.bidValue;
-                bid.bidValue = 0;
-
-                // Danger: Similar to King of ether, could provoke denial of service, better to replace with call
-                // Warning: Let users claim their own eth, this function is more expensive to use for people after the totalBidsLimit
-                payable(bid.bidder).transfer(value);
-
-                emit Refund(_msgSender(), bidValue, latestBidId - totalBidsLimit,  block.timestamp);
-            }
-
             bids[latestBidId] = Bid(latestBidId, bidValue, _msgSender(), block.timestamp);
-            userBidIndexes[_msgSender()][latestBidId] = userBidIds[_msgSender()].length - 1;
+            userBidIndexes[_msgSender()][latestBidId] = userBidIds[_msgSender()].length == 0 ? 0 : userBidIds[_msgSender()].length - 1;
             userBidIds[_msgSender()].push(latestBidId);
 
-            bidIndexes[_msgSender()][latestBidId] = bidsArray.length - 1;
+            bidIndexes[_msgSender()][latestBidId] = bidsArray.length == 0 ? 0 : bidsArray.length - 1;
             bidsArray.push(bids[latestBidId]);
             latestBidId++;
 
             emit BidPlaced(_msgSender(), bidValue, latestBidId - 1,  block.timestamp);
         }
-
-        lastBidAmount = bidValue;
     }
 
     function updateBid(uint bidId, uint newBidValue) external payable onlyActive nonReentrant {
@@ -201,13 +256,11 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
         emit BidUpdated(_msgSender(), bids[bidId].bidValue, newBidValue, bidId,  block.timestamp);
         bids[bidId] = Bid(bidId, newBidValue, _msgSender(), block.timestamp);
-
-        if(newBidValue > lastBidAmount) {
-            lastBidAmount = newBidValue;
-        }
+        bidsArray[bidIndexes[_msgSender()][bidId]] = bids[bidId];
     }
 
     function cancelBid(uint bidId) external onlyActive nonReentrant {
+        require(_msgSender() == bids[bidId].bidder, "You are not an owner of the bid");
         uint256 _bidValue = bids[bidId].bidValue;
 
         delete bids[bidId];
@@ -235,45 +288,9 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         return super.supportsInterface(interfaceId);
     }
 
-
-    function getRarity(uint256 userBidId) public returns (Rarity){
-        uint256 position;
-        
-        if(latestBidId <= totalBidsLimit){ 
-            position = userBidId;
-        } else {
-            uint256 result = latestBidId - totalBidsLimit; // 15 - 10 = 5
-            require(userBidId > result, "User didn't win auction");
-            // 6 - 5 = 1
-            // 15 - 5 = 10
-            position = userBidId - result; 
-        }
-
-        return _calculateRarityForBids(position);
-    }
-
-    // function _calculateRarityForBids(uint256 position) private returns (Rarity){
-    //     if(position >= commonBottom && position <= commonTop) return Rarity.COMMON;
-    //     if(position >= rareBottom && position <= rareTop) return Rarity.RARE;
-    //     if(position >= epicBottom && position <= epicTop) return Rarity.EPIC;
-    //     if(position >= epicRareBottom && position <= epicRareTop) return Rarity.EPIC_RARE;
-    //     if(position >= misticBottom && position <= misticTop) return Rarity.MISTIC;
-    //     if(position == extraCelestial) return Rarity.EXTRA_CELESTIAL;
-    // }
-
     function addPromotionMintingAddress(address _beneficiary) public onlyOwner {
         promotionMintingAddresses.push(_beneficiary);
         promotionPasses[_beneficiary].receives = true;
-    }
-
-    function _calculateRarityForBids(uint256 position) private returns (Rarity){
-        if(position >= 1 && position <= 5000) return Rarity.COMMON;
-        if(position >= 5001 && position <= 7000) return Rarity.RARE;
-        if(position >= 7001 && position <= 7999) return Rarity.EPIC;
-        if(position >= 8000 && position <= 8800) return Rarity.EPIC_RARE;
-        if(position >= 8801 && position <= 9300) return Rarity.LEGENDARY;
-        if(position >= 9301 && position <= 9499) return Rarity.MYSTIC;
-        if(position == 9500) return Rarity.EXTRA_CELESTIAL;
     }
 
     function claimPromotionMintingPasses() public {
