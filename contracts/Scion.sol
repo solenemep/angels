@@ -47,52 +47,46 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     uint256 rerollPrice = 1e18;
     uint256 priceForRarityInSouls = 100e18;
 
+    uint256 public totalBackgroundAssetsAmount;
+    uint256 public totalHaloAssetsAmount;
+    uint256 public totalHeadAssetsAmount;
+    uint256 public totalBodyAssetsAmount;
+    uint256 public totalWingsAssetsAmount;
+    uint256 public totalHandsAssetsAmount;
+    uint256 public totalSigilAssetsAmount;
+
+    uint256 public totalBackgroundAssetsWeight;
+    uint256 public totalHaloAssetsWeight;
+    uint256 public totalHeadAssetsWeight;
+    uint256 public totalBodyAssetsWeight;
+    uint256 public totalWingsAssetsWeight;
+    uint256 public totalHandsAssetsWeight;
+    uint256 public totalSigilAssetsWeight;
+
     // The default is 3, but you can set this higher.
     uint16 requestConfirmations = 3;
 
     IERC20 public soul;
     IERC20 public keter;
 
-    enum Rarity {
-        COMMON,
-        RARE,
-        EPIC,
-        EPIC_RARE,
-        LEGENDARY,
-        MYSTIC, 
-        EXTRA_CELESTIAL
-    }
-
-    mapping (uint256 => Rarity) public scionRarity;
     mapping(uint256 => uint256) private requestIdToTokenId;
     mapping(uint256 => int256) private requestIdToAssetId;
     mapping(uint256 => bool) private requestIdExists;
     mapping(uint256 => int256) private requestIdToMintPassRarity;
-    mapping (uint => mapping (uint => AssetRarity)) private rarityTemp;
+    mapping (bytes32 => uint256) public assetIndexes;
 
-    // ULTRA_RARE: Only bought with $KETER = yield scions
-    enum AssetRarity {
-        COMMON,
-        RARE,
-        EPIC_RARE,
-        LEGENDARY,
-        MYSTIC,
-        EXTRA_CELESTIAL
-    }
+    Asset[] public backgroundAssets;
+    Asset[] public haloAssets;
+    Asset[] public headAssets;
+    Asset[] public bodyAssets;
+    Asset[] public wingsAssets;
+    Asset[] public handsAssets;
+    Asset[] public sigilAssets;
 
-    enum ScionRarity {
-        COMMON,
-        RARE,
-        EPIC_RARE,
-        LEGENDARY,
-        MYSTIC, 
-        EXTRA_CELESTIAL
-    }
-
-    // they have a cost in Souls
     struct Asset {
         bool hasIt;
-        AssetRarity rarity;
+        bytes32 asset;
+        uint256 weight;
     }
 
     struct Scions {
@@ -184,6 +178,105 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         priceForRarityInSouls = _priceInSouls;
     }
 
+    function setBackgroundAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+        require(_assets.length == _weights.length);
+
+        totalBackgroundAssetsWeight = 0;
+        totalBackgroundAssetsAmount = 0;
+
+        for(uint256 i; i < _assets.length; i++) {
+            assetIndexes[_assets[i]] = totalBackgroundAssetsAmount;
+            backgroundAssets.push(Asset(false, _assets[i], _weights[i]));
+            totalBackgroundAssetsWeight += _weights[i];
+            totalBackgroundAssetsAmount++;
+        }
+    }
+
+    function setHaloAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+        require(_assets.length == _weights.length);
+
+        totalHaloAssetsWeight = 0;
+        totalHaloAssetsAmount = 0;
+
+        for(uint256 i; i < _assets.length; i++) {
+            assetIndexes[_assets[i]] = totalHaloAssetsAmount;
+            haloAssets.push(Asset(false, _assets[i], _weights[i]));
+            totalHaloAssetsWeight += _weights[i];
+            totalHaloAssetsAmount++;
+        }
+    }
+
+    function setHeadAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+        require(_assets.length == _weights.length);
+        
+        totalHeadAssetsWeight = 0;
+        totalHeadAssetsAmount = 0;
+
+        for(uint256 i; i < _assets.length; i++) {
+            assetIndexes[_assets[i]] = totalHeadAssetsAmount;
+            headAssets.push(Asset(false, _assets[i], _weights[i]));
+            totalHeadAssetsWeight += _weights[i];
+            totalHeadAssetsAmount++;
+        }
+    }
+
+    function setBodyAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+        require(_assets.length == _weights.length);
+        
+        totalBodyAssetsWeight = 0;
+        totalBodyAssetsAmount = 0;
+
+        for(uint256 i; i < _assets.length; i++) {
+            assetIndexes[_assets[i]] = totalBodyAssetsAmount;
+            bodyAssets.push(Asset(false, _assets[i], _weights[i]));
+            totalBodyAssetsWeight += _weights[i];
+            totalBodyAssetsAmount++;
+        }
+    }
+
+    function setWingsAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+        require(_assets.length == _weights.length);
+
+        totalWingsAssetsWeight = 0;
+        totalWingsAssetsAmount = 0;
+
+        for(uint256 i; i < _assets.length; i++) {
+            assetIndexes[_assets[i]] = totalWingsAssetsAmount;
+            wingsAssets.push(Asset(false, _assets[i], _weights[i]));
+            totalWingsAssetsWeight += _weights[i];
+            totalWingsAssetsAmount++;
+        }
+    }
+
+    function setHandsAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+        require(_assets.length == _weights.length);
+
+        totalHandsAssetsAmount = 0;
+        totalHandsAssetsWeight = 0;
+
+        for(uint256 i; i < _assets.length; i++) {
+            assetIndexes[_assets[i]] = totalHandsAssetsAmount;
+            handsAssets.push(Asset(false, _assets[i], _weights[i]));
+            totalHandsAssetsWeight += _weights[i];
+            totalHandsAssetsAmount++;
+        }
+    }
+
+    function setSigilAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+        require(_assets.length == _weights.length);
+
+        totalSigilAssetsAmount = 0;
+        totalSigilAssetsWeight = 0;
+
+        for(uint256 i; i < _assets.length; i++) {
+            assetIndexes[_assets[i]] = totalSigilAssetsAmount;
+            sigilAssets.push(Asset(false, _assets[i], _weights[i]));
+
+            totalSigilAssetsWeight += _weights[i];
+            totalSigilAssetsAmount++;
+        }
+    }
+
     /**
      * @dev See {IERC721Metadata-tokenURI}.
      */
@@ -259,120 +352,140 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         // Mint when I get the callback 
         if(requestIdExists[requestId]) {
             if(requestIdToMintPassRarity[requestId] >= 0) {
-                uint256 randomNumber = (randomWords[0] % 100) + 1;
+                
                 uint256 assetsAmount = randomWords.length;
                 uint256 nonCommonAmount;
+                uint256 previousWeightTemp;
+
+                uint256 randomNumber = randomWords[0] % totalBackgroundAssetsWeight;
                 
-                if(randomNumber < 50) {
-                    assetsAmount -= 1;
-                } 
-
-                for(uint i = 1; i < assetsAmount; i++) {
-                    if(nonCommonAmount == 2) {
-                        rarityTemp[requestIdToTokenId[requestId]][i - 1] = AssetRarity.COMMON;
-                        //scionsData[requestIdToTokenId[requestId]][i - 1] = (true, AssetRarity.COMMON);
-                        continue;
+                for(uint i = 1; i < backgroundAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= backgroundAssets[i].weight) {
+                        scionsData[requestIdToTokenId[requestId]].background = Asset(true, backgroundAssets[i].asset, backgroundAssets[i].weight);
+                        break;
                     }
 
-                    AssetRarity rarity;
-
-                    if(requestIdToMintPassRarity[requestId] == 0) {
-                        rarity = commonMintPassChances(randomWords[i] % 100);
-                    } else if(requestIdToMintPassRarity[requestId] == 1) {
-                        rarity = rareMintPassChances(randomWords[i] % 100);
-                    } else if(requestIdToMintPassRarity[requestId] == 2 || requestIdToMintPassRarity[requestId] == 3) {
-                        rarity = epicRareMintPassChances(randomWords[i] % 100);
-                    }
-                    
-
-                    if(rarity != AssetRarity.COMMON) {
-                        nonCommonAmount++;
-                    }
-
-                    rarityTemp[requestIdToTokenId[requestId]][i - 1] = rarity;
-                    //scionsData[requestIdToTokenId[requestId]][i - 1] = (true, rarity);
+                    previousWeightTemp = backgroundAssets[i].weight;
                 }
 
-                scionsData[requestIdToTokenId[requestId]].background = Asset(true, rarityTemp[requestIdToTokenId[requestId]][0]);
-                emit AssetGenerated(requestIdToTokenId[requestId], 0, int(uint(rarityTemp[requestIdToTokenId[requestId]][0])), block.timestamp);
-                scionsData[requestIdToTokenId[requestId]].halo = Asset(true, rarityTemp[requestIdToTokenId[requestId]][1]);
-                emit AssetGenerated(requestIdToTokenId[requestId], 1, int(uint(rarityTemp[requestIdToTokenId[requestId]][1])), block.timestamp);
-                scionsData[requestIdToTokenId[requestId]].head = Asset(true, rarityTemp[requestIdToTokenId[requestId]][2]);
-                emit AssetGenerated(requestIdToTokenId[requestId], 2, int(uint(rarityTemp[requestIdToTokenId[requestId]][2])), block.timestamp);
-                scionsData[requestIdToTokenId[requestId]].body = Asset(true, rarityTemp[requestIdToTokenId[requestId]][3]);
-                emit AssetGenerated(requestIdToTokenId[requestId], 3, int(uint(rarityTemp[requestIdToTokenId[requestId]][3])), block.timestamp);
+                randomNumber = randomWords[1] % totalHaloAssetsWeight;
+                previousWeightTemp = 0;
 
-                if(assetsAmount == 5) {
-                    scionsData[requestIdToTokenId[requestId]].wings = Asset(true, rarityTemp[requestIdToTokenId[requestId]][4]);
-                    emit AssetGenerated(requestIdToTokenId[requestId], 4, int(uint(rarityTemp[requestIdToTokenId[requestId]][4])), block.timestamp);
-                }
-            } else if(requestIdToAssetId[requestId] >= 0) {
-                uint256 randomNumber = (randomWords[0] % 100);
-                if(requestIdToAssetId[requestId] >= 4) {
-                    if(requestIdToAssetId[requestId] == 4 && scionsData[requestIdToTokenId[requestId]].wings.hasIt) {
-                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], int256(uint256(scionsData[requestIdToTokenId[requestId]].wings.rarity)));
-                    } else if(requestIdToAssetId[requestId] == 5 && scionsData[requestIdToTokenId[requestId]].hands.hasIt) {
-                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], int256(uint256(scionsData[requestIdToTokenId[requestId]].hands.rarity)));
-                    } else if(requestIdToAssetId[requestId] == 6 && scionsData[requestIdToTokenId[requestId]].sigil.hasIt) {
-                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], int256(uint256(scionsData[requestIdToTokenId[requestId]].sigil.rarity)));
-                    } else if(randomNumber > 95) {
-                        rerollCalculate(randomWords[1] % 100, uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], -1);
-                    } else {
-                        emit Reroll(uint256(requestIdToAssetId[requestId]), requestIdToTokenId[requestId], -1, -1, block.timestamp);
+                for(uint i = 1; i < haloAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= haloAssets[i].weight) {
+                        scionsData[requestIdToTokenId[requestId]].halo = Asset(true, haloAssets[i].asset, haloAssets[i].weight);
+                        break;
                     }
+
+                    previousWeightTemp = haloAssets[i].weight;
                 }
-            }
+
+                randomNumber = randomWords[2] % totalHaloAssetsWeight;
+
+                for(uint i = 1; i < headAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= headAssets[i].weight) {
+                        scionsData[requestIdToTokenId[requestId]].head = Asset(true, headAssets[i].asset, headAssets[i].weight);
+                        break;
+                    }
+
+                    previousWeightTemp = headAssets[i].weight;
+                }
+
+                randomNumber = randomWords[3] % totalBodyAssetsWeight;
+
+                for(uint i = 1; i < bodyAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= headAssets[i].weight) {
+                        scionsData[requestIdToTokenId[requestId]].body = Asset(true, bodyAssets[i].asset, bodyAssets[i].weight);
+                        break;
+                    }
+
+                    previousWeightTemp = bodyAssets[i].weight;
+                }
+
+                randomNumber = randomWords[4] % totalWingsAssetsWeight;
+
+                for(uint i = 1; i < wingsAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= headAssets[i].weight) {
+                        scionsData[requestIdToTokenId[requestId]].wings = Asset(true, wingsAssets[i].asset, wingsAssets[i].weight);
+                        break;
+                    }
+
+                    previousWeightTemp = headAssets[i].weight;
+                }
+
+                randomNumber = randomWords[5] % totalHandsAssetsWeight;
+
+                for(uint i = 1; i < handsAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= handsAssets[i].weight) {
+                        scionsData[requestIdToTokenId[requestId]].hands = Asset(true, handsAssets[i].asset, handsAssets[i].weight);
+                        break;
+                    }
+
+                    previousWeightTemp = handsAssets[i].weight;
+                }
+
+                randomNumber = randomWords[6] % totalSigilAssetsWeight;
+
+                for(uint i = 1; i < sigilAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= sigilAssets[i].weight) {
+                        scionsData[requestIdToTokenId[requestId]].sigil = Asset(true, sigilAssets[i].asset, sigilAssets[i].weight);
+                        break;
+                    }
+
+                    previousWeightTemp = sigilAssets[i].weight;
+                }
 
             requestIdExists[requestId] = false;
+            }
         }
     }
 
-    // rarity should not be less then it was before
-    function rerollCalculate(uint256 randomNumber, uint256 assetId, uint256 tokenId, int256 _previousRarity) private {
-        if(randomNumber < 70) {
-            if(assetId == 4) {
-                scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
-            }
+    // // rarity should not be less then it was before
+    // function rerollCalculate(uint256 randomNumber, uint256 assetId, uint256 tokenId, int256 _previousRarity) private {
+    //     if(randomNumber < 70) {
+    //         if(assetId == 4) {
+    //             scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
+    //         }
 
-            if(assetId == 5) {
-                scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
-            }
+    //         if(assetId == 5) {
+    //             scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
+    //         }
 
-            if(assetId == 6) {
-                scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
-            }
+    //         if(assetId == 6) {
+    //             scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
+    //         }
             
-            emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.RARE)), block.timestamp);
-        } else if(randomNumber >= 70 && randomNumber <= 95) {
-            if(assetId == 4) {
-                scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
-            }
+    //         emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.RARE)), block.timestamp);
+    //     } else if(randomNumber >= 70 && randomNumber <= 95) {
+    //         if(assetId == 4) {
+    //             scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
+    //         }
 
-            if(assetId == 5) {
-                scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
-            }
+    //         if(assetId == 5) {
+    //             scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
+    //         }
 
-            if(assetId == 6) {
-                scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
-            }
+    //         if(assetId == 6) {
+    //             scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
+    //         }
 
-            emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.EPIC_RARE)), block.timestamp);
-        } else {
-            if(assetId == 4) {
-                scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
-            }
+    //         emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.EPIC_RARE)), block.timestamp);
+    //     } else {
+    //         if(assetId == 4) {
+    //             scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
+    //         }
 
-            if(assetId == 5) {
-                scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
-            }
+    //         if(assetId == 5) {
+    //             scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
+    //         }
 
-            if(assetId == 6) {
-                scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
-            }
+    //         if(assetId == 6) {
+    //             scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
+    //         }
 
-            emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.LEGENDARY)), block.timestamp);
-        }
-    }
+    //         emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.LEGENDARY)), block.timestamp);
+    //     }
+    // }
 
     // Shows the minting pass rarity
     // function getMintingPassData(uint256 tokenId) public view returns (Rarity){
@@ -394,31 +507,8 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
         // Burning minting pass
         mintingPass.burn(tokenId);
-
-        if(rarity == 0) {
-            requestRandomWords(_tokenIdTracker.current(), -1, rarity, 6);
-        } else if(rarity == 1) {
-            requestRandomWords(_tokenIdTracker.current(), -1, rarity, 6);  
-        } else if(rarity == 2) {
-            requestRandomWords(_tokenIdTracker.current(), -1, rarity, 6);  
-        } else if(rarity == 3) {
-            //legendaryMintPassChances();
-        } else if(rarity == 4) {
-            scionsData[_tokenIdTracker.current()].background = Asset(true, AssetRarity.LEGENDARY);
-            scionsData[_tokenIdTracker.current()].halo = Asset(true, AssetRarity.LEGENDARY);
-            scionsData[_tokenIdTracker.current()].head = Asset(true, AssetRarity.LEGENDARY);
-            scionsData[_tokenIdTracker.current()].body = Asset(true, AssetRarity.LEGENDARY);
-            scionsData[_tokenIdTracker.current()].wings = Asset(true, AssetRarity.LEGENDARY);
-            scionsData[_tokenIdTracker.current()].hands = Asset(true, AssetRarity.LEGENDARY);
-        } else if(rarity == 5) {
-            scionsData[_tokenIdTracker.current()].background = Asset(true, AssetRarity.EXTRA_CELESTIAL);
-            scionsData[_tokenIdTracker.current()].halo = Asset(true, AssetRarity.EXTRA_CELESTIAL);
-            scionsData[_tokenIdTracker.current()].head = Asset(true, AssetRarity.EXTRA_CELESTIAL);
-            scionsData[_tokenIdTracker.current()].body = Asset(true, AssetRarity.EXTRA_CELESTIAL);
-            scionsData[_tokenIdTracker.current()].wings = Asset(true, AssetRarity.EXTRA_CELESTIAL);
-            scionsData[_tokenIdTracker.current()].hands = Asset(true, AssetRarity.EXTRA_CELESTIAL);
-            scionsData[_tokenIdTracker.current()].sigil = Asset(true, AssetRarity.EXTRA_CELESTIAL);
-        }
+        
+        requestRandomWords(_tokenIdTracker.current(), -1, 0, 6);
         
         _safeMint(msg.sender, _tokenIdTracker.current());
         emit ScionClaimed(msg.sender, _tokenIdTracker.current(), tokenId, uint256(rarity), block.timestamp);
@@ -448,77 +538,13 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     function rarity(uint256 tokenId) public view returns (uint256 _rarity) {
 
-        _rarity += uint256(scionsData[tokenId].background.rarity) + 1;
-        _rarity += uint256(scionsData[tokenId].halo.rarity) + 1;
-        _rarity += uint256(scionsData[tokenId].head.rarity) + 1;
-        _rarity += uint256(scionsData[tokenId].body.rarity) + 1;
+        _rarity += uint256(scionsData[tokenId].background.weight) + 1;
+        _rarity += uint256(scionsData[tokenId].halo.weight) + 1;
+        _rarity += uint256(scionsData[tokenId].head.weight) + 1;
+        _rarity += uint256(scionsData[tokenId].body.weight) + 1;
 
-        _rarity += scionsData[tokenId].wings.hasIt ? uint256(scionsData[tokenId].wings.rarity) + 1 : 0;
-        _rarity += scionsData[tokenId].hands.hasIt ? uint256(scionsData[tokenId].hands.rarity) + 1 : 0;
-        _rarity += scionsData[tokenId].sigil.hasIt ? uint256(scionsData[tokenId].sigil.rarity) + 1 : 0;
-    }
-
-
-    // Common:
-    // ● 5 or less assets;
-    // ● 2 or less assets are rare.
-
-
-    // Rare:
-    // ● 5 or less assets;
-    // ● 2 or less assets are epicEpic
-    
-    // Legendary: 6 Legendary Assets
-    
-    // Extra-celestial: 7 Legendary Assets
-
-    // 75% 20% 4% 1% 0% 0%
-    function commonMintPassChances(uint256 _number) private returns (AssetRarity rarity){
-        if(_number >= 1 && _number <= 75) return AssetRarity.COMMON;
-        if(_number >= 76 && _number <= 95) return AssetRarity.RARE;
-        if(_number >= 96 && _number <= 99) return AssetRarity.EPIC_RARE;
-        if(_number == 100) return AssetRarity.LEGENDARY;
-    }
-
-    // 30% 50% 15% 4% 1% 0%
-    function rareMintPassChances(uint256 _number) private returns (AssetRarity rarity){
-        if(_number >= 1 && _number <= 30) return AssetRarity.COMMON;
-        if(_number >= 31 && _number <= 80) return AssetRarity.RARE;
-        if(_number >= 81 && _number <= 95) return AssetRarity.EPIC_RARE;
-        if(_number >= 96 && _number <= 99) return AssetRarity.LEGENDARY;
-        if(_number == 100) return AssetRarity.MYSTIC;
-    }
-
-    // 20% 25% 35% 15% 5% 0%
-    function epicRareMintPassChances(uint256 _number) private returns (AssetRarity rarity){
-        if(_number >= 1 && _number <= 20) return AssetRarity.COMMON;
-        if(_number >= 21 && _number <= 45) return AssetRarity.RARE;
-        if(_number >= 46 && _number <= 80) return AssetRarity.EPIC_RARE;
-        if(_number >= 81 && _number <= 95) return AssetRarity.LEGENDARY;
-        if(_number >= 96 && _number <= 100) return AssetRarity.MYSTIC;
-    }
-
-    // 10% 15% 20% 30% 20% 5%
-    function legendaryMintPassChances(uint256 _number) private returns (AssetRarity rarity){
-        if(_number >= 1 && _number <= 10) return AssetRarity.COMMON;
-        if(_number >= 11 && _number <= 25) return AssetRarity.RARE;
-        if(_number >= 26 && _number <= 45) return AssetRarity.EPIC_RARE;
-        if(_number >= 46 && _number <= 75) return AssetRarity.LEGENDARY;
-        if(_number >= 76 && _number <= 95) return AssetRarity.MYSTIC;
-        if(_number >= 96 && _number <= 100) return AssetRarity.EXTRA_CELESTIAL;
-    }
-
-    // 0% 10% 15% 25% 40% 10%
-    function mysticMintPassChances(uint256 _number) private returns (AssetRarity rarity){
-        if(_number >= 1 && _number <= 10) return AssetRarity.RARE;
-        if(_number >= 11 && _number <= 25) return AssetRarity.EPIC_RARE;
-        if(_number >= 26 && _number <= 50) return AssetRarity.LEGENDARY;
-        if(_number >= 51 && _number <= 90) return AssetRarity.MYSTIC;
-        if(_number >= 91 && _number <= 100) return AssetRarity.EXTRA_CELESTIAL;
-    }
-
-    // 100%
-    function extraCelestialMintPassChances() private returns (AssetRarity rarity){
-        return AssetRarity.EXTRA_CELESTIAL;
+        _rarity += scionsData[tokenId].wings.hasIt ? uint256(scionsData[tokenId].wings.weight) + 1 : 0;
+        _rarity += scionsData[tokenId].hands.hasIt ? uint256(scionsData[tokenId].hands.weight) + 1 : 0;
+        _rarity += scionsData[tokenId].sigil.hasIt ? uint256(scionsData[tokenId].sigil.weight) + 1 : 0;
     }
 }
