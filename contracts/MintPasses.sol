@@ -46,6 +46,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     mapping (address => mapping (uint256 => uint256)) public userBidIndexes;
     mapping (address => mapping (uint256 => uint256)) public bidIndexes;
     mapping (uint256 => bytes32) public mintingPassClass;
+    mapping (address => bool) public userClaimed;
 
     // mapping (uint256 => Rarity) public tokenRarity; // Could be done like this
     struct MintPass {
@@ -181,7 +182,6 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     }
 
     function finishAuction() external onlyOwner {
-        active = false;
         auctionDuration = block.timestamp > start ? block.timestamp - start : 0;
     }
 
@@ -211,6 +211,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
     function claimPass() external onlyWhenFinished {
         // This assumes that the auction overpassed the total bids limit
+        require(!userClaimed[_msgSender()], "User already claimed");
         require(userBidIds[_msgSender()].length > 0 && userAvailableToClaim() > 0 , "User didn't win an auction");
 
         // A user could have thousands of bids, may provoke a gas problem here
@@ -218,10 +219,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
             if(bids[userBidIds[_msgSender()][i]].bidValue > 0 && getBidClass(userBidIds[_msgSender()][i]) != 0x00) {
                 mintingPassClass[_tokenIdTracker.current()] = getBidClass(userBidIds[_msgSender()][i]);
 
-                uint256 _bidValue = bids[userBidIds[_msgSender()][i]].bidValue;
-                bids[userBidIds[_msgSender()][i]].bidValue = 0;
-
-                payable(treasury).transfer(_bidValue);
+                payable(treasury).transfer(bids[userBidIds[_msgSender()][i]].bidValue);
 
                 _safeMint(_msgSender(), _tokenIdTracker.current());
 
@@ -230,6 +228,8 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
                 emit PassClaimed(_msgSender(), _tokenIdTracker.current() - 1, userBidIds[_msgSender()][i], block.timestamp);
             }
         }
+
+        userClaimed[_msgSender()] = true;
     }
 
     function bid(uint bidsAmount, uint bidValue) external payable onlyActive nonReentrant {
@@ -259,7 +259,8 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         bidsArray[bidIndexes[_msgSender()][bidId]] = bids[bidId];
     }
 
-    function cancelBid(uint bidId) external onlyActive nonReentrant {
+    function cancelBid(uint bidId) external nonReentrant {
+        require((block.timestamp > start && block.timestamp < start + auctionDuration) || (block.timestamp > start + auctionDuration && classes[STANDARD].top != 0 && getBidClass(bidId) == 0x00));
         require(_msgSender() == bids[bidId].bidder, "You are not an owner of the bid");
         uint256 _bidValue = bids[bidId].bidValue;
 
@@ -273,6 +274,10 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
         payable(_msgSender()).transfer(_bidValue);
         emit BidCanceled(_msgSender(), _bidValue, bidId, block.timestamp);
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
     }
 
     /**

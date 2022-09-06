@@ -43,7 +43,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     bytes32 keyHash;
 
-    uint32 callbackGasLimit = 500000;
+    uint32 callbackGasLimit = 800000;
     uint256 rerollPrice = 1e18;
     uint256 priceForRarityInSouls = 100e18;
 
@@ -73,7 +73,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     mapping(uint256 => int256) private requestIdToAssetId;
     mapping(uint256 => bool) private requestIdExists;
     mapping(uint256 => int256) private requestIdToMintPassRarity;
-    mapping (bytes32 => uint256) public assetIndexes;
+    mapping (string => uint256) public assetIndexes;
 
     Asset[] public backgroundAssets;
     Asset[] public haloAssets;
@@ -85,8 +85,9 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     struct Asset {
         bool hasIt;
-        bytes32 asset;
+        string asset;
         uint256 weight;
+        string name;
     }
 
     struct Scions {
@@ -106,9 +107,10 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _previousRarity, int256 _newRarity, uint256 _timestamp);
     event AssetGenerated(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _rarity, uint256 _timestamp);
-    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 indexed _mintPassId, uint256 mintPassRarity, uint256 _timestamp);
+    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 indexed _mintPassId, uint256 mintPassRarity, Scions _assets, uint256 _timestamp);
     event Nested(uint256 indexed tokenId);
     event Unnested(uint256 indexed tokenId);
+    event RandomGenerated(uint256[] random);
 
     constructor(uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash, address _mintingPass, address _soul, address _keter, string memory name, string memory symbol) ERC721(name, symbol) VRFConsumerBaseV2(vrfCoordinator) {
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
@@ -178,103 +180,102 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         priceForRarityInSouls = _priceInSouls;
     }
 
-    function setBackgroundAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
-        require(_assets.length == _weights.length);
+    function setBackgroundAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
+        require(_assets.length == _weights.length && _names.length == _assets.length);
 
-        totalBackgroundAssetsWeight = 0;
         totalBackgroundAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
             assetIndexes[_assets[i]] = totalBackgroundAssetsAmount;
-            backgroundAssets.push(Asset(false, _assets[i], _weights[i]));
-            totalBackgroundAssetsWeight += _weights[i];
+            backgroundAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalBackgroundAssetsAmount++;
         }
+
+        totalBackgroundAssetsWeight = _weights[_assets.length-1];
     }
 
-    function setHaloAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+    function setHaloAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
         require(_assets.length == _weights.length);
 
-        totalHaloAssetsWeight = 0;
         totalHaloAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
             assetIndexes[_assets[i]] = totalHaloAssetsAmount;
-            haloAssets.push(Asset(false, _assets[i], _weights[i]));
-            totalHaloAssetsWeight += _weights[i];
+            haloAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalHaloAssetsAmount++;
         }
+
+        totalHaloAssetsWeight = _weights[_assets.length-1];
     }
 
-    function setHeadAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+    function setHeadAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
         require(_assets.length == _weights.length);
         
-        totalHeadAssetsWeight = 0;
         totalHeadAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
             assetIndexes[_assets[i]] = totalHeadAssetsAmount;
-            headAssets.push(Asset(false, _assets[i], _weights[i]));
-            totalHeadAssetsWeight += _weights[i];
+            headAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalHeadAssetsAmount++;
         }
+
+        totalHeadAssetsWeight = _weights[_assets.length-1];
     }
 
-    function setBodyAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+    function setBodyAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
         require(_assets.length == _weights.length);
         
-        totalBodyAssetsWeight = 0;
         totalBodyAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
             assetIndexes[_assets[i]] = totalBodyAssetsAmount;
-            bodyAssets.push(Asset(false, _assets[i], _weights[i]));
-            totalBodyAssetsWeight += _weights[i];
+            bodyAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalBodyAssetsAmount++;
         }
+
+        totalBodyAssetsWeight = _weights[_assets.length-1];
     }
 
-    function setWingsAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+    function setWingsAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
         require(_assets.length == _weights.length);
 
-        totalWingsAssetsWeight = 0;
         totalWingsAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
             assetIndexes[_assets[i]] = totalWingsAssetsAmount;
-            wingsAssets.push(Asset(false, _assets[i], _weights[i]));
-            totalWingsAssetsWeight += _weights[i];
+            wingsAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalWingsAssetsAmount++;
         }
+
+        totalWingsAssetsWeight = _weights[_assets.length-1];
     }
 
-    function setHandsAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+    function setHandsAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
         require(_assets.length == _weights.length);
 
         totalHandsAssetsAmount = 0;
-        totalHandsAssetsWeight = 0;
 
         for(uint256 i; i < _assets.length; i++) {
             assetIndexes[_assets[i]] = totalHandsAssetsAmount;
-            handsAssets.push(Asset(false, _assets[i], _weights[i]));
-            totalHandsAssetsWeight += _weights[i];
+            handsAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalHandsAssetsAmount++;
         }
+
+        totalHandsAssetsWeight = _weights[_assets.length-1];
     }
 
-    function setSigilAssets(bytes32[] memory _assets, uint256[] memory _weights) external onlyOwner {
+    function setSigilAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
         require(_assets.length == _weights.length);
 
         totalSigilAssetsAmount = 0;
-        totalSigilAssetsWeight = 0;
 
         for(uint256 i; i < _assets.length; i++) {
             assetIndexes[_assets[i]] = totalSigilAssetsAmount;
-            sigilAssets.push(Asset(false, _assets[i], _weights[i]));
-
-            totalSigilAssetsWeight += _weights[i];
+            sigilAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalSigilAssetsAmount++;
         }
+
+        totalSigilAssetsWeight = _weights[_assets.length-1];
     }
 
     /**
@@ -329,7 +330,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     }
 
     // Assumes the subscription is funded sufficiently.
-    function requestRandomWords(uint256 mintPassTokenId, int256 assetId, int256 mintPassRarity, uint256 numWords) internal returns (uint256 s_requestId) {
+    function requestRandomWords(uint256 scionTokenId, int256 assetId, int256 mintPassRarity, uint256 numWords) internal returns (uint256 s_requestId) {
         // Will revert if subscription is not set and funded.
         s_requestId = COORDINATOR.requestRandomWords(
             keyHash,
@@ -341,7 +342,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
         requestIdToAssetId[s_requestId] = assetId;
         requestIdToMintPassRarity[s_requestId] = mintPassRarity;
-        requestIdToTokenId[s_requestId] = mintPassTokenId;
+        requestIdToTokenId[s_requestId] = scionTokenId;
         requestIdExists[s_requestId] = true;
     }
     
@@ -353,15 +354,17 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         if(requestIdExists[requestId]) {
             if(requestIdToMintPassRarity[requestId] >= 0) {
                 
-                uint256 assetsAmount = randomWords.length;
-                uint256 nonCommonAmount;
+                emit RandomGenerated(randomWords);
+
                 uint256 previousWeightTemp;
+                uint256 tokenId = requestIdToTokenId[requestId];
+                int256 _rarity = requestIdToMintPassRarity[tokenId];
 
                 uint256 randomNumber = randomWords[0] % totalBackgroundAssetsWeight;
                 
-                for(uint i = 1; i < backgroundAssets.length; i++) {
+                for(uint i; i < backgroundAssets.length; i++) {
                     if(randomNumber > previousWeightTemp && randomNumber <= backgroundAssets[i].weight) {
-                        scionsData[requestIdToTokenId[requestId]].background = Asset(true, backgroundAssets[i].asset, backgroundAssets[i].weight);
+                        scionsData[tokenId].background = Asset(true, backgroundAssets[i].asset, backgroundAssets[i].weight, backgroundAssets[i].name);
                         break;
                     }
 
@@ -371,20 +374,21 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                 randomNumber = randomWords[1] % totalHaloAssetsWeight;
                 previousWeightTemp = 0;
 
-                for(uint i = 1; i < haloAssets.length; i++) {
+                for(uint i; i < haloAssets.length; i++) {
                     if(randomNumber > previousWeightTemp && randomNumber <= haloAssets[i].weight) {
-                        scionsData[requestIdToTokenId[requestId]].halo = Asset(true, haloAssets[i].asset, haloAssets[i].weight);
+                        scionsData[tokenId].halo = Asset(true, haloAssets[i].asset, haloAssets[i].weight, haloAssets[i].name);
                         break;
                     }
 
                     previousWeightTemp = haloAssets[i].weight;
                 }
 
-                randomNumber = randomWords[2] % totalHaloAssetsWeight;
+                randomNumber = randomWords[2] % totalHeadAssetsWeight;
+                previousWeightTemp = 0;
 
-                for(uint i = 1; i < headAssets.length; i++) {
+                for(uint i; i < headAssets.length; i++) {
                     if(randomNumber > previousWeightTemp && randomNumber <= headAssets[i].weight) {
-                        scionsData[requestIdToTokenId[requestId]].head = Asset(true, headAssets[i].asset, headAssets[i].weight);
+                        scionsData[tokenId].head = Asset(true, headAssets[i].asset, headAssets[i].weight, headAssets[i].name);
                         break;
                     }
 
@@ -392,10 +396,11 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                 }
 
                 randomNumber = randomWords[3] % totalBodyAssetsWeight;
+                previousWeightTemp = 0;
 
-                for(uint i = 1; i < bodyAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= headAssets[i].weight) {
-                        scionsData[requestIdToTokenId[requestId]].body = Asset(true, bodyAssets[i].asset, bodyAssets[i].weight);
+                for(uint i; i < bodyAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= bodyAssets[i].weight) {
+                        scionsData[tokenId].body = Asset(true, bodyAssets[i].asset, bodyAssets[i].weight, bodyAssets[i].name);
                         break;
                     }
 
@@ -403,21 +408,23 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                 }
 
                 randomNumber = randomWords[4] % totalWingsAssetsWeight;
+                previousWeightTemp = 0;
 
-                for(uint i = 1; i < wingsAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= headAssets[i].weight) {
-                        scionsData[requestIdToTokenId[requestId]].wings = Asset(true, wingsAssets[i].asset, wingsAssets[i].weight);
+                for(uint i; i < wingsAssets.length; i++) {
+                    if(randomNumber > previousWeightTemp && randomNumber <= wingsAssets[i].weight) {
+                        scionsData[tokenId].wings = Asset(true, wingsAssets[i].asset, wingsAssets[i].weight, wingsAssets[i].name);
                         break;
                     }
 
-                    previousWeightTemp = headAssets[i].weight;
+                    previousWeightTemp = wingsAssets[i].weight;
                 }
 
                 randomNumber = randomWords[5] % totalHandsAssetsWeight;
+                previousWeightTemp = 0;
 
-                for(uint i = 1; i < handsAssets.length; i++) {
+                for(uint i; i < handsAssets.length; i++) {
                     if(randomNumber > previousWeightTemp && randomNumber <= handsAssets[i].weight) {
-                        scionsData[requestIdToTokenId[requestId]].hands = Asset(true, handsAssets[i].asset, handsAssets[i].weight);
+                        scionsData[tokenId].hands = Asset(true, handsAssets[i].asset, handsAssets[i].weight, handsAssets[i].name);
                         break;
                     }
 
@@ -425,10 +432,11 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                 }
 
                 randomNumber = randomWords[6] % totalSigilAssetsWeight;
+                previousWeightTemp = 0;
 
-                for(uint i = 1; i < sigilAssets.length; i++) {
+                for(uint i; i < sigilAssets.length; i++) {
                     if(randomNumber > previousWeightTemp && randomNumber <= sigilAssets[i].weight) {
-                        scionsData[requestIdToTokenId[requestId]].sigil = Asset(true, sigilAssets[i].asset, sigilAssets[i].weight);
+                        scionsData[tokenId].sigil = Asset(true, sigilAssets[i].asset, sigilAssets[i].weight, sigilAssets[i].name);
                         break;
                     }
 
@@ -436,6 +444,8 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                 }
 
             requestIdExists[requestId] = false;
+
+            emit ScionClaimed(msg.sender, _tokenIdTracker.current(), tokenId, uint256(_rarity), scionsData[tokenId], block.timestamp);
             }
         }
     }
@@ -502,16 +512,13 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     function claimScion(uint256 tokenId) public {
         require(mintingPass.ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
-        
-        int256 rarity = int256(uint256(mintingPass.getMintingPassData(tokenId)));
 
         // Burning minting pass
         mintingPass.burn(tokenId);
         
-        requestRandomWords(_tokenIdTracker.current(), -1, 0, 6);
+        requestRandomWords(_tokenIdTracker.current(), -1, 0, 7);
         
         _safeMint(msg.sender, _tokenIdTracker.current());
-        emit ScionClaimed(msg.sender, _tokenIdTracker.current(), tokenId, uint256(rarity), block.timestamp);
 
         _tokenIdTracker.increment();
     }
