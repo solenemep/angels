@@ -13,7 +13,8 @@
   'SCION_NAME',
   'SCION_SYMBOL',
   'SOUL_NAME',
-  'SOUL_SYMBOL'
+  'SOUL_SYMBOL',
+  'SCION_BASE_TOKEN_URI'
 ].forEach(i => {
   if (!process.env[i]) {
     throw new Error(
@@ -37,7 +38,8 @@ const {
    SCION_NAME,
    SCION_SYMBOL,
    SOUL_NAME,
-   SOUL_SYMBOL
+   SOUL_SYMBOL,
+   SCION_BASE_TOKEN_URI
   } = process.env;
 
 export default {
@@ -55,5 +57,6 @@ export default {
   SCION_NAME,
   SCION_SYMBOL,
   SOUL_NAME,
-  SOUL_SYMBOL
+  SOUL_SYMBOL,
+  SCION_BASE_TOKEN_URI
 }

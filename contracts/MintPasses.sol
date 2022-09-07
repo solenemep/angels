@@ -23,7 +23,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
     Counters.Counter private _tokenIdTracker;
 
-    string private _baseTokenURI; // Not used
+    string private _baseTokenURI;
     uint256 public totalBidsLimit;
     uint256 public totalBids; // Not used
     uint256 public latestBidId = 1;
@@ -114,6 +114,10 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         minimumBidAmount = _minimumBidAmount;
     }
 
+    function isAuctionFinished() public view returns (bool) {
+        return block.timestamp > start + auctionDuration;
+    }
+
     function getAllBids() public view returns (Bid[] memory) {
         return bidsArray;
     }
@@ -131,6 +135,8 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
         if(bidValue < classes[STANDARD].top) {
             return STANDARD;
+        } else if(bidValue >= classes[BRONZE].bottom && bidValue < classes[BRONZE].top) {
+            return BRONZE;
         } else if(bidValue >= classes[SILVER].bottom && bidValue < classes[SILVER].top) {
             return SILVER;
         } else if(bidValue >= classes[GOLD].bottom && bidValue < classes[GOLD].top) {
@@ -197,11 +203,15 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         _baseTokenURI = baseTokenURI;
     }
 
-    function userAvailableToClaim() public view returns(uint256) {
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
+    }
+
+    function userAvailableToClaim(address _address) public view returns(uint256) {
         uint256 result;
 
-        for(uint i = 0; i < userBidIds[_msgSender()].length; i++) {
-            if(getBidClass(userBidIds[_msgSender()][i]) != 0x00) {
+        for(uint i = 0; i < userBidIds[_address].length; i++) {
+            if(getBidClass(userBidIds[_address][i]) != 0x00) {
                 result++;
             }
         }
@@ -212,7 +222,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     function claimPass() external onlyWhenFinished {
         // This assumes that the auction overpassed the total bids limit
         require(!userClaimed[_msgSender()], "User already claimed");
-        require(userBidIds[_msgSender()].length > 0 && userAvailableToClaim() > 0 , "User didn't win an auction");
+        require(userBidIds[_msgSender()].length > 0 && userAvailableToClaim(_msgSender()) > 0 , "User didn't win an auction");
 
         // A user could have thousands of bids, may provoke a gas problem here
         for(uint i = 0; i < userBidIds[_msgSender()].length; i++) {
@@ -274,10 +284,6 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
         payable(_msgSender()).transfer(_bidValue);
         emit BidCanceled(_msgSender(), _bidValue, bidId, block.timestamp);
-    }
-
-    function _baseURI() internal view override returns (string memory) {
-        return _baseTokenURI;
     }
 
     /**

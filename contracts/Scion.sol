@@ -18,9 +18,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     using Counters for Counters.Counter;
     using Strings for uint256;
     using SafeERC20 for IERC20;
-
-    // Optional mapping for token URIs
-    mapping(uint256 => string) private _tokenURIs;
     
     MintPasses public mintingPass;
     Counters.Counter private _tokenIdTracker;
@@ -43,7 +40,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     bytes32 keyHash;
 
-    uint32 callbackGasLimit = 800000;
+    uint32 callbackGasLimit = 1200000;
     uint256 rerollPrice = 1e18;
     uint256 priceForRarityInSouls = 100e18;
 
@@ -66,6 +63,14 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     // The default is 3, but you can set this higher.
     uint16 requestConfirmations = 3;
 
+    /**
+        @notice Whether nesting is currently allowed.
+        @dev If false then nesting is blocked, but unnesting is always allowed.
+     */
+    bool public nestingOpen = false;
+
+    string private _baseTokenURI;
+
     IERC20 public soul;
     IERC20 public keter;
 
@@ -73,7 +78,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     mapping(uint256 => int256) private requestIdToAssetId;
     mapping(uint256 => bool) private requestIdExists;
     mapping(uint256 => int256) private requestIdToMintPassRarity;
-    mapping (string => uint256) public assetIndexes;
 
     Asset[] public backgroundAssets;
     Asset[] public haloAssets;
@@ -107,12 +111,12 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _previousRarity, int256 _newRarity, uint256 _timestamp);
     event AssetGenerated(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _rarity, uint256 _timestamp);
-    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 indexed _mintPassId, uint256 mintPassRarity, Scions _assets, uint256 _timestamp);
+    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 mintPassRarity, Scions _assets, uint256 _timestamp);
     event Nested(uint256 indexed tokenId);
     event Unnested(uint256 indexed tokenId);
     event RandomGenerated(uint256[] random);
 
-    constructor(uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash, address _mintingPass, address _soul, address _keter, string memory name, string memory symbol) ERC721(name, symbol) VRFConsumerBaseV2(vrfCoordinator) {
+    constructor(uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash,  address _mintingPass, address _soul, address _keter, string memory name, string memory symbol, string memory baseTokenURI) ERC721(name, symbol) VRFConsumerBaseV2(vrfCoordinator) {
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
         LINKTOKEN = LinkTokenInterface(link);
         keyHash = _keyHash;
@@ -120,6 +124,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         mintingPass = MintPasses(_mintingPass);
         soul = IERC20(_soul);
         keter = IERC20(_keter);
+        _baseTokenURI = baseTokenURI;
     }
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {
@@ -131,6 +136,18 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         _;
     }
 
+    function baseURI() public view returns (string memory) {
+        return _baseURI();
+    }
+
+    function setBaseURI(string memory baseTokenURI) external onlyOwner {
+        _baseTokenURI = baseTokenURI;
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
+    }
+
     function nestingPeriod(uint256 tokenId) external view returns (bool nesting, uint256 current, uint256 total) {
         uint256 start = nestingStarted[tokenId];
         if (start != 0) {
@@ -139,12 +156,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         }
         total = current + nestingTotal[tokenId];
     }
-
-    /**
-        @notice Whether nesting is currently allowed.
-        @dev If false then nesting is blocked, but unnesting is always allowed.
-     */
-    bool public nestingOpen = false;
 
     /**
         @notice Toggles the `nestingOpen` flag.
@@ -186,7 +197,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         totalBackgroundAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
-            assetIndexes[_assets[i]] = totalBackgroundAssetsAmount;
             backgroundAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalBackgroundAssetsAmount++;
         }
@@ -200,7 +210,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         totalHaloAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
-            assetIndexes[_assets[i]] = totalHaloAssetsAmount;
             haloAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalHaloAssetsAmount++;
         }
@@ -214,7 +223,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         totalHeadAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
-            assetIndexes[_assets[i]] = totalHeadAssetsAmount;
             headAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalHeadAssetsAmount++;
         }
@@ -228,7 +236,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         totalBodyAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
-            assetIndexes[_assets[i]] = totalBodyAssetsAmount;
             bodyAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalBodyAssetsAmount++;
         }
@@ -242,7 +249,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         totalWingsAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
-            assetIndexes[_assets[i]] = totalWingsAssetsAmount;
             wingsAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalWingsAssetsAmount++;
         }
@@ -256,7 +262,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         totalHandsAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
-            assetIndexes[_assets[i]] = totalHandsAssetsAmount;
             handsAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalHandsAssetsAmount++;
         }
@@ -270,63 +275,11 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         totalSigilAssetsAmount = 0;
 
         for(uint256 i; i < _assets.length; i++) {
-            assetIndexes[_assets[i]] = totalSigilAssetsAmount;
             sigilAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
             totalSigilAssetsAmount++;
         }
 
         totalSigilAssetsWeight = _weights[_assets.length-1];
-    }
-
-    /**
-     * @dev See {IERC721Metadata-tokenURI}.
-     */
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "ERC721URIStorage: URI query for nonexistent token");
-
-        string memory _tokenURI = _tokenURIs[tokenId];
-        string memory base = _baseURI();
-
-        // If there is no base URI, return the token URI.
-        if (bytes(base).length == 0) {
-            return _tokenURI;
-        }
-        // If both are set, concatenate the baseURI and tokenURI (via abi.encodePacked).
-        if (bytes(_tokenURI).length > 0) {
-            return string(abi.encodePacked(base, _tokenURI));
-        }
-
-        return super.tokenURI(tokenId);
-    }
-
-    /**
-     * @dev Sets `_tokenURI` as the tokenURI of `tokenId`.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     */
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual {
-        require(_exists(tokenId), "ERC721URIStorage: URI set of nonexistent token");
-        _tokenURIs[tokenId] = _tokenURI;
-    }
-
-    /**
-     * @dev Destroys `tokenId`.
-     * The approval is cleared when the token is burned.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _burn(uint256 tokenId) internal virtual override {
-        super._burn(tokenId);
-
-        if (bytes(_tokenURIs[tokenId]).length != 0) {
-            delete _tokenURIs[tokenId];
-        }
     }
 
     // Assumes the subscription is funded sufficiently.
@@ -351,14 +304,12 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         uint256[] memory randomWords
     ) internal override {
         // Mint when I get the callback 
-        if(requestIdExists[requestId]) {
-            if(requestIdToMintPassRarity[requestId] >= 0) {
-                
+        if(requestIdExists[requestId]) {              
                 emit RandomGenerated(randomWords);
 
                 uint256 previousWeightTemp;
                 uint256 tokenId = requestIdToTokenId[requestId];
-                int256 _rarity = requestIdToMintPassRarity[tokenId];
+                int256 _rarity = requestIdToMintPassRarity[requestId];
 
                 uint256 randomNumber = randomWords[0] % totalBackgroundAssetsWeight;
                 
@@ -443,10 +394,9 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
                     previousWeightTemp = sigilAssets[i].weight;
                 }
 
-            requestIdExists[requestId] = false;
+                requestIdExists[requestId] = false;
 
-            emit ScionClaimed(msg.sender, _tokenIdTracker.current(), tokenId, uint256(_rarity), scionsData[tokenId], block.timestamp);
-            }
+                emit ScionClaimed(msg.sender, tokenId, uint256(_rarity), scionsData[tokenId], block.timestamp);
         }
     }
 
@@ -522,21 +472,12 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
         _tokenIdTracker.increment();
     }
-    
-    // Sets the uri, url of ipfs
-    function setTokenURI(uint256 tokenId, string memory _tokenURI) external {
-       _setTokenURI(tokenId, _tokenURI);
-    }
 
     function burnForSoul(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
 
         soul.safeTransfer(msg.sender, rarity(tokenId) * priceForRarityInSouls);
        _burn(tokenId); // add new burn with scionsData
-    }
-
-    function _baseURI() internal view virtual override returns (string memory) {
-        return "";
     }
 
     function priceInSouls(uint256 tokenId) public view returns (uint256 price) {
