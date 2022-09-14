@@ -34,12 +34,12 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     address public scionContract;
     address public treasury;
 
-    bytes32 public constant STANDARD = keccak256("STANDARD");
     bytes32 public constant BRONZE = keccak256("BRONZE");
     bytes32 public constant SILVER = keccak256("SILVER");
     bytes32 public constant GOLD = keccak256("GOLD");
-    bytes32 public constant DIAMOND = keccak256("DIAMOND");
-    bytes32 public constant CELESTIAL = keccak256("CELESTIAL");
+    bytes32 public constant PLATINUM = keccak256("PLATINUM");
+    bytes32 public constant RUBY = keccak256("RUBY");
+    bytes32 public constant ONYX = keccak256("ONYX");
 
     mapping (uint256 => Bid) public bids;
     mapping (address => uint256[]) public userBidIds;
@@ -129,22 +129,22 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     function getBidClass(uint256 _bidId) public view returns (bytes32) {
         uint256 bidValue = bids[_bidId].bidValue;
 
-        if(bidValue < classes[STANDARD].bottom) {
+        if(bidValue < classes[BRONZE].bottom) {
             return 0x00;
         }
 
-        if(bidValue < classes[STANDARD].top) {
-            return STANDARD;
-        } else if(bidValue >= classes[BRONZE].bottom && bidValue < classes[BRONZE].top) {
+        if(bidValue < classes[BRONZE].top) {
             return BRONZE;
         } else if(bidValue >= classes[SILVER].bottom && bidValue < classes[SILVER].top) {
             return SILVER;
         } else if(bidValue >= classes[GOLD].bottom && bidValue < classes[GOLD].top) {
             return GOLD;
-        } else if(bidValue >= classes[DIAMOND].bottom && bidValue < classes[DIAMOND].top) {
-            return DIAMOND;
-        } else if(bidValue >= classes[CELESTIAL].bottom && bidValue < classes[CELESTIAL].top) {
-            return CELESTIAL;
+        } else if(bidValue >= classes[PLATINUM].bottom && bidValue < classes[PLATINUM].top) {
+            return PLATINUM;
+        } else if(bidValue >= classes[RUBY].bottom && bidValue < classes[RUBY].top) {
+            return RUBY;
+        } else if(bidValue >= classes[ONYX].bottom && bidValue < classes[ONYX].top) {
+            return ONYX;
         }
     }
 
@@ -270,7 +270,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     }
 
     function cancelBid(uint bidId) external nonReentrant {
-        require((block.timestamp > start && block.timestamp < start + auctionDuration) || (block.timestamp > start + auctionDuration && classes[STANDARD].top != 0 && getBidClass(bidId) == 0x00));
+        require((block.timestamp > start && block.timestamp < start + auctionDuration) || (block.timestamp > start + auctionDuration && classes[BRONZE].top != 0 && getBidClass(bidId) == 0x00));
         require(_msgSender() == bids[bidId].bidder, "You are not an owner of the bid");
         uint256 _bidValue = bids[bidId].bidValue;
 

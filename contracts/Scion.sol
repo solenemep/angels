@@ -76,8 +76,10 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     mapping(uint256 => uint256) private requestIdToTokenId;
     mapping(uint256 => int256) private requestIdToAssetId;
+    mapping(uint256 => uint256) private requestIdToMintPassId;
     mapping(uint256 => bool) private requestIdExists;
     mapping(uint256 => int256) private requestIdToMintPassRarity;
+    mapping(uint256 => address) private requestIdToUser;
 
     Asset[] public backgroundAssets;
     Asset[] public haloAssets;
@@ -111,7 +113,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _previousRarity, int256 _newRarity, uint256 _timestamp);
     event AssetGenerated(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _rarity, uint256 _timestamp);
-    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 mintPassRarity, Scions _assets, uint256 _timestamp);
+    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 mintPassId, uint256 mintPassRarity, Scions _assets, uint256 _timestamp);
     event Nested(uint256 indexed tokenId);
     event Unnested(uint256 indexed tokenId);
     event RandomGenerated(uint256[] random);
@@ -283,7 +285,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     }
 
     // Assumes the subscription is funded sufficiently.
-    function requestRandomWords(uint256 scionTokenId, int256 assetId, int256 mintPassRarity, uint256 numWords) internal returns (uint256 s_requestId) {
+    function requestRandomWords(uint256 scionTokenId, int256 assetId, uint256 mintPassId, int256 mintPassRarity, uint256 numWords) internal returns (uint256 s_requestId) {
         // Will revert if subscription is not set and funded.
         s_requestId = COORDINATOR.requestRandomWords(
             keyHash,
@@ -294,7 +296,9 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         );
 
         requestIdToAssetId[s_requestId] = assetId;
+        requestIdToMintPassId[s_requestId] = mintPassId;
         requestIdToMintPassRarity[s_requestId] = mintPassRarity;
+        requestIdToUser[s_requestId] = msg.sender;
         requestIdToTokenId[s_requestId] = scionTokenId;
         requestIdExists[s_requestId] = true;
     }
@@ -396,7 +400,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
                 requestIdExists[requestId] = false;
 
-                emit ScionClaimed(msg.sender, tokenId, uint256(_rarity), scionsData[tokenId], block.timestamp);
+                emit ScionClaimed(requestIdToUser[requestId], tokenId, requestIdToMintPassId[requestId], uint256(_rarity), scionsData[tokenId], block.timestamp);
         }
     }
 
@@ -457,7 +461,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         require(assetId <= 6);
 
         keter.safeTransferFrom(msg.sender, address(this), rerollPrice);
-        requestRandomWords(tokenId, int256(assetId), -1, 2);
+        requestRandomWords(tokenId, int256(assetId), 0, -1, 2);
     }
 
     function claimScion(uint256 tokenId) public {
@@ -466,7 +470,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         // Burning minting pass
         mintingPass.burn(tokenId);
         
-        requestRandomWords(_tokenIdTracker.current(), -1, 0, 7);
+        requestRandomWords(_tokenIdTracker.current(), -1, tokenId, 0, 7);
         
         _safeMint(msg.sender, _tokenIdTracker.current());
 

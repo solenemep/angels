@@ -52,6 +52,10 @@ module.exports = {
         url: `https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_KEY}`,
         accounts: accountsTestnet,
     },
+    goerli: {
+      url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_KEY}`,
+      accounts: accountsTestnet,
+  },
   },
   etherscan: {
     // Your API key for Etherscan

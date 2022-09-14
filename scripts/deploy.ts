@@ -30,36 +30,41 @@ async function main() {
   await mintPasses.deployed();
   console.log("MintPasses address:", mintPasses.address);
 
-  await wait(5_000);
+  await wait(30_000);
 
   const Soul = await hre.ethers.getContractFactory("Soul");
   const soul = await Soul.deploy(args.SOUL_NAME, args.SOUL_SYMBOL);
   console.log("Soul address:", soul.address);
 
-  await wait(5_000);
+  await wait(30_000);
 
   const Keter = await hre.ethers.getContractFactory("Keter");
   const keter = await Keter.deploy();
   console.log("Keter address:", keter.address);
 
-  await wait(5_000);
+  await wait(30_000);
 
   const Scion = await hre.ethers.getContractFactory("Scion");
   const scion = await Scion.deploy(args.SUBSCRIPTION_ID, args.VRF_COORDINATOR_ADDRESS, args.LINK_TOKEN_ADDRESS, args.VRF_KEY_HASH, mintPasses.address, soul.address, keter.address, args.SCION_NAME, args.SCION_SYMBOL, args.SCION_BASE_TOKEN_URI);
   
   console.log("Scion address:", scion.address);
 
-  await wait(5_000);
+  await wait(30_000);
   
   (await mintPasses.setScionAddress(scion.address)).wait();
+
+  await wait(30_000);
+
   (await soul.transfer(scion.address, "1000000000000000000000000000")).wait();
+
+  await wait(30_000);
 
   const Archangel = await hre.ethers.getContractFactory("Archangel");
   const archangel = await Archangel.deploy(soul.address);
 
   console.log("Archangel address:", archangel.address);
 
-  await wait(5_000);
+  await wait(30_000);
 
   let tx: ContractTransaction = await scion.setBackgroundAssets(
     [ "BGND001",
