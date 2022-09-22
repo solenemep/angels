@@ -13,7 +13,7 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "./MintPasses.sol";
 
 
-contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
+contract Scion is Ownable, ERC721Enumerable {
     // Mint, receives the minting pass NFT, burns it to create a Scion  
     using Counters for Counters.Counter;
     using Strings for uint256;
@@ -35,14 +35,8 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
      */
     mapping(uint256 => uint256) private nestingTotal;
 
-    // Your subscription ID.
-    uint64 s_subscriptionId;
-
-    bytes32 keyHash;
-
-    uint32 callbackGasLimit = 1200000;
-    uint256 rerollPrice = 1e18;
     uint256 priceForRarityInSouls = 100e18;
+    uint256 BP = 10000;
 
     uint256 public totalBackgroundAssetsAmount;
     uint256 public totalHaloAssetsAmount;
@@ -60,9 +54,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     uint256 public totalHandsAssetsWeight;
     uint256 public totalSigilAssetsWeight;
 
-    // The default is 3, but you can set this higher.
-    uint16 requestConfirmations = 3;
-
     /**
         @notice Whether nesting is currently allowed.
         @dev If false then nesting is blocked, but unnesting is always allowed.
@@ -74,13 +65,6 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     IERC20 public soul;
     IERC20 public keter;
 
-    mapping(uint256 => uint256) private requestIdToTokenId;
-    mapping(uint256 => int256) private requestIdToAssetId;
-    mapping(uint256 => uint256) private requestIdToMintPassId;
-    mapping(uint256 => bool) private requestIdExists;
-    mapping(uint256 => int256) private requestIdToMintPassRarity;
-    mapping(uint256 => address) private requestIdToUser;
-
     Asset[] public backgroundAssets;
     Asset[] public haloAssets;
     Asset[] public headAssets;
@@ -89,11 +73,14 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     Asset[] public handsAssets;
     Asset[] public sigilAssets;
 
+    RerollChances public rerollChances;
+
     struct Asset {
         bool hasIt;
         string asset;
         uint256 weight;
         string name;
+        uint256 assetIndex;
     }
 
     struct Scions {
@@ -108,21 +95,26 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         Asset sigil;
     }
 
-    mapping(uint256 => Scions) public scionsData;
-    // Burn creates FT Souls
+    struct RerollChances {
+        uint256 downgrade;
+        uint256 sameWeight;
+        uint256 rarityPlus;
+    }
 
-    event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _previousRarity, int256 _newRarity, uint256 _timestamp);
+    mapping(uint256 => Scions) public scionsData;
+    mapping(uint256 => Asset[]) public assets;
+    mapping(uint256 => uint256[]) public assetsUniqueWeights;
+    mapping(uint256 => uint256) public assetsTotalWeight;
+    mapping(uint256 => uint256) public assetsTotalAmount;
+
+    event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _previousRarity, int256 _newRarity, uint256 _price, uint256 _timestamp);
     event AssetGenerated(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _rarity, uint256 _timestamp);
     event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 mintPassId, uint256 mintPassRarity, Scions _assets, uint256 _timestamp);
     event Nested(uint256 indexed tokenId);
     event Unnested(uint256 indexed tokenId);
-    event RandomGenerated(uint256[] random);
+    event RandomGenerated(uint256 random);
 
-    constructor(uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash,  address _mintingPass, address _soul, address _keter, string memory name, string memory symbol, string memory baseTokenURI) ERC721(name, symbol) VRFConsumerBaseV2(vrfCoordinator) {
-        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
-        LINKTOKEN = LinkTokenInterface(link);
-        keyHash = _keyHash;
-        s_subscriptionId = subscriptionId;
+    constructor(address _mintingPass, address _soul, address _keter, string memory name, string memory symbol, string memory baseTokenURI) ERC721(name, symbol) {
         mintingPass = MintPasses(_mintingPass);
         soul = IERC20(_soul);
         keter = IERC20(_keter);
@@ -148,6 +140,46 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
 
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
+    }
+
+    function rerollPrice(uint256 _assetId, uint256 _tokenID) public view returns (uint256 _price) {
+
+        uint256 _weightMax = assets[_assetId][0].weight;
+
+        if(_assetId == 0) {
+            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].background.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
+            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].background.weight + _weightWanted) / _weightWanted**2 );
+        } 
+
+        if(_assetId == 1) {
+            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].halo.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
+            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].halo.weight + _weightWanted) / _weightWanted**2 );
+        }
+
+        if(_assetId == 2) {
+            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].head.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
+            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].head.weight + _weightWanted) / _weightWanted**2 );
+        }
+
+        if(_assetId == 3) {
+            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].body.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
+            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].body.weight + _weightWanted) / _weightWanted**2 );
+        }
+
+        if(_assetId == 4) {
+            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].wings.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
+            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].wings.weight + _weightWanted) / _weightWanted**2 );
+        }
+
+        if(_assetId == 5) {
+            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].hands.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
+            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].hands.weight + _weightWanted) / _weightWanted**2 );
+        }
+
+        if(_assetId == 6) {
+            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].sigil.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
+            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].sigil.weight + _weightWanted) / _weightWanted**2 );
+        }
     }
 
     function nestingPeriod(uint256 tokenId) external view returns (bool nesting, uint256 current, uint256 total) {
@@ -193,263 +225,214 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         priceForRarityInSouls = _priceInSouls;
     }
 
-    function setBackgroundAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
+    function setRerollChances(RerollChances memory _rerollChances) external onlyOwner {
+        rerollChances = _rerollChances;
+    }
+
+    function setAssets(uint _assetId, string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
         require(_assets.length == _weights.length && _names.length == _assets.length);
 
-        totalBackgroundAssetsAmount = 0;
+        assetsTotalAmount[_assetId] = 0;
+        uint _previousWeight;
 
         for(uint256 i; i < _assets.length; i++) {
-            backgroundAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
-            totalBackgroundAssetsAmount++;
+            assets[_assetId].push(Asset(false, _assets[i], _weights[i], _names[i], i));
+            assetsTotalAmount[_assetId]++;
+
+            if(_weights[i] != _previousWeight) {
+                _previousWeight = _weights[i];
+                assetsUniqueWeights[_assetId].push(_weights[i]);
+            }
         }
 
-        totalBackgroundAssetsWeight = _weights[_assets.length-1];
+        assetsTotalWeight[_assetId] = _weights[_assets.length-1];
     }
 
-    function setHaloAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
-        require(_assets.length == _weights.length);
+    function random(uint number, uint _salt) internal view returns(uint){
+        return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,  
+        msg.sender, _salt))) % number;
+    }
 
-        totalHaloAssetsAmount = 0;
+    function _setAssets(uint _assetId, uint _mintPassId, uint _scionTokenId) internal {
+        uint256 previousWeightTemp;
+        uint256 salt = mintingPass.mintingPassRandom(_mintPassId);
+        uint256 randomNumber = random(assetsTotalWeight[_assetId], salt);
+            
+        emit RandomGenerated(randomNumber);
 
-        for(uint256 i; i < _assets.length; i++) {
-            haloAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
-            totalHaloAssetsAmount++;
+        for(uint i; i < assets[_assetId].length; i++) {
+            if(randomNumber > previousWeightTemp && randomNumber <= assets[_assetId][i].weight) {
+                if(_assetId == 0) {
+                    scionsData[_scionTokenId].background = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weight,  assets[_assetId][i].name, i);
+                } if(_assetId == 1) {
+                    scionsData[_scionTokenId].halo = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weight,  assets[_assetId][i].name, i);
+                } if(_assetId == 2) {
+                    scionsData[_scionTokenId].head = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weight,  assets[_assetId][i].name, i);
+                } if(_assetId == 3) {
+                    scionsData[_scionTokenId].body = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weight,  assets[_assetId][i].name, i);
+                } if(_assetId == 4) {
+                    scionsData[_scionTokenId].wings = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weight,  assets[_assetId][i].name, i);
+                } if(_assetId == 5) {
+                    scionsData[_scionTokenId].hands = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weight,  assets[_assetId][i].name, i);
+                } if(_assetId == 6) {
+                    scionsData[_scionTokenId].sigil = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weight,  assets[_assetId][i].name, i);
+                }
+
+                break;
+            }
+
+            previousWeightTemp = assets[_assetId][i].weight;
         }
-
-        totalHaloAssetsWeight = _weights[_assets.length-1];
-    }
-
-    function setHeadAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
-        require(_assets.length == _weights.length);
-        
-        totalHeadAssetsAmount = 0;
-
-        for(uint256 i; i < _assets.length; i++) {
-            headAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
-            totalHeadAssetsAmount++;
-        }
-
-        totalHeadAssetsWeight = _weights[_assets.length-1];
-    }
-
-    function setBodyAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
-        require(_assets.length == _weights.length);
-        
-        totalBodyAssetsAmount = 0;
-
-        for(uint256 i; i < _assets.length; i++) {
-            bodyAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
-            totalBodyAssetsAmount++;
-        }
-
-        totalBodyAssetsWeight = _weights[_assets.length-1];
-    }
-
-    function setWingsAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
-        require(_assets.length == _weights.length);
-
-        totalWingsAssetsAmount = 0;
-
-        for(uint256 i; i < _assets.length; i++) {
-            wingsAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
-            totalWingsAssetsAmount++;
-        }
-
-        totalWingsAssetsWeight = _weights[_assets.length-1];
-    }
-
-    function setHandsAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
-        require(_assets.length == _weights.length);
-
-        totalHandsAssetsAmount = 0;
-
-        for(uint256 i; i < _assets.length; i++) {
-            handsAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
-            totalHandsAssetsAmount++;
-        }
-
-        totalHandsAssetsWeight = _weights[_assets.length-1];
-    }
-
-    function setSigilAssets(string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
-        require(_assets.length == _weights.length);
-
-        totalSigilAssetsAmount = 0;
-
-        for(uint256 i; i < _assets.length; i++) {
-            sigilAssets.push(Asset(false, _assets[i], _weights[i], _names[i]));
-            totalSigilAssetsAmount++;
-        }
-
-        totalSigilAssetsWeight = _weights[_assets.length-1];
-    }
-
-    // Assumes the subscription is funded sufficiently.
-    function requestRandomWords(uint256 scionTokenId, int256 assetId, uint256 mintPassId, int256 mintPassRarity, uint256 numWords) internal returns (uint256 s_requestId) {
-        // Will revert if subscription is not set and funded.
-        s_requestId = COORDINATOR.requestRandomWords(
-            keyHash,
-            s_subscriptionId,
-            requestConfirmations,
-            callbackGasLimit,
-            uint32(numWords)
-        );
-
-        requestIdToAssetId[s_requestId] = assetId;
-        requestIdToMintPassId[s_requestId] = mintPassId;
-        requestIdToMintPassRarity[s_requestId] = mintPassRarity;
-        requestIdToUser[s_requestId] = msg.sender;
-        requestIdToTokenId[s_requestId] = scionTokenId;
-        requestIdExists[s_requestId] = true;
     }
     
-    function fulfillRandomWords(
-        uint256 requestId, /* requestId */
-        uint256[] memory randomWords
-    ) internal override {
-        // Mint when I get the callback 
-        if(requestIdExists[requestId]) {              
-                emit RandomGenerated(randomWords);
+    function defineAssets(
+        uint256 scionTokenId,
+        uint256 mintPassId, 
+        int256 mintPassRarity
+    ) internal {
+        // Mint when I get the callback             
+            int256 _rarity = mintPassRarity;
 
-                uint256 previousWeightTemp;
-                uint256 tokenId = requestIdToTokenId[requestId];
-                int256 _rarity = requestIdToMintPassRarity[requestId];
+            for(uint i; i <= 6; i++) {
+                _setAssets(i, mintPassId, scionTokenId);
+            }
 
-                uint256 randomNumber = randomWords[0] % totalBackgroundAssetsWeight;
-                
-                for(uint i; i < backgroundAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= backgroundAssets[i].weight) {
-                        scionsData[tokenId].background = Asset(true, backgroundAssets[i].asset, backgroundAssets[i].weight, backgroundAssets[i].name);
-                        break;
-                    }
-
-                    previousWeightTemp = backgroundAssets[i].weight;
-                }
-
-                randomNumber = randomWords[1] % totalHaloAssetsWeight;
-                previousWeightTemp = 0;
-
-                for(uint i; i < haloAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= haloAssets[i].weight) {
-                        scionsData[tokenId].halo = Asset(true, haloAssets[i].asset, haloAssets[i].weight, haloAssets[i].name);
-                        break;
-                    }
-
-                    previousWeightTemp = haloAssets[i].weight;
-                }
-
-                randomNumber = randomWords[2] % totalHeadAssetsWeight;
-                previousWeightTemp = 0;
-
-                for(uint i; i < headAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= headAssets[i].weight) {
-                        scionsData[tokenId].head = Asset(true, headAssets[i].asset, headAssets[i].weight, headAssets[i].name);
-                        break;
-                    }
-
-                    previousWeightTemp = headAssets[i].weight;
-                }
-
-                randomNumber = randomWords[3] % totalBodyAssetsWeight;
-                previousWeightTemp = 0;
-
-                for(uint i; i < bodyAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= bodyAssets[i].weight) {
-                        scionsData[tokenId].body = Asset(true, bodyAssets[i].asset, bodyAssets[i].weight, bodyAssets[i].name);
-                        break;
-                    }
-
-                    previousWeightTemp = bodyAssets[i].weight;
-                }
-
-                randomNumber = randomWords[4] % totalWingsAssetsWeight;
-                previousWeightTemp = 0;
-
-                for(uint i; i < wingsAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= wingsAssets[i].weight) {
-                        scionsData[tokenId].wings = Asset(true, wingsAssets[i].asset, wingsAssets[i].weight, wingsAssets[i].name);
-                        break;
-                    }
-
-                    previousWeightTemp = wingsAssets[i].weight;
-                }
-
-                randomNumber = randomWords[5] % totalHandsAssetsWeight;
-                previousWeightTemp = 0;
-
-                for(uint i; i < handsAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= handsAssets[i].weight) {
-                        scionsData[tokenId].hands = Asset(true, handsAssets[i].asset, handsAssets[i].weight, handsAssets[i].name);
-                        break;
-                    }
-
-                    previousWeightTemp = handsAssets[i].weight;
-                }
-
-                randomNumber = randomWords[6] % totalSigilAssetsWeight;
-                previousWeightTemp = 0;
-
-                for(uint i; i < sigilAssets.length; i++) {
-                    if(randomNumber > previousWeightTemp && randomNumber <= sigilAssets[i].weight) {
-                        scionsData[tokenId].sigil = Asset(true, sigilAssets[i].asset, sigilAssets[i].weight, sigilAssets[i].name);
-                        break;
-                    }
-
-                    previousWeightTemp = sigilAssets[i].weight;
-                }
-
-                requestIdExists[requestId] = false;
-
-                emit ScionClaimed(requestIdToUser[requestId], tokenId, requestIdToMintPassId[requestId], uint256(_rarity), scionsData[tokenId], block.timestamp);
-        }
+            emit ScionClaimed(msg.sender, scionTokenId, mintPassId, uint256(_rarity), scionsData[scionTokenId], block.timestamp);
     }
 
-    // // rarity should not be less then it was before
-    // function rerollCalculate(uint256 randomNumber, uint256 assetId, uint256 tokenId, int256 _previousRarity) private {
-    //     if(randomNumber < 70) {
-    //         if(assetId == 4) {
-    //             scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
-    //         }
+    // rarity should not be less then it was before
+    function rerollCalculate(uint256 _randomNumber, uint256 _assetId, uint256 _tokenId, uint256 _price) private {
+            if(_assetId == 0) {
+                handleWeightChange(scionsData[_tokenId].background.assetIndex, _assetId, _tokenId, 
+                _randomNumber <= rerollChances.downgrade ? 
+                    0 : 
+                        ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
+                ); 
+            } else if(_assetId == 1) {
+                handleWeightChange(scionsData[_tokenId].halo.assetIndex, _assetId, _tokenId, 
+                _randomNumber <= rerollChances.downgrade ? 
+                    0 : 
+                        ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
+                ); 
+            } else if(_assetId == 2) {
+                handleWeightChange(scionsData[_tokenId].head.assetIndex, _assetId, _tokenId, 
+                _randomNumber <= rerollChances.downgrade ? 
+                    0 : 
+                        ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
+                ); 
+            } else if(_assetId == 3) {
+                handleWeightChange(scionsData[_tokenId].body.assetIndex, _assetId, _tokenId, 
+                _randomNumber <= rerollChances.downgrade ? 
+                    0 : 
+                        ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
+                ); 
+            } else if(_assetId == 4) {
+                handleWeightChange(scionsData[_tokenId].wings.assetIndex, _assetId, _tokenId, 
+                _randomNumber <= rerollChances.downgrade ? 
+                    0 : 
+                        ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
+                ); 
+            } else if(_assetId == 5) {
+                handleWeightChange(scionsData[_tokenId].hands.assetIndex, _assetId, _tokenId, 
+                _randomNumber <= rerollChances.downgrade ? 
+                    0 : 
+                        ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
+                ); 
+            } else if(_assetId == 6) {
+                handleWeightChange(scionsData[_tokenId].sigil.assetIndex, _assetId, _tokenId, 
+                _randomNumber <= rerollChances.downgrade ? 
+                    0 : 
+                        ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
+                ); 
+            }
+    }
 
-    //         if(assetId == 5) {
-    //             scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
-    //         }
+    function weightChange(uint _assetId, uint256 _assetIndex, uint _state) private view returns (uint _weight) {
+        uint256 currentWeight = assets[_assetId][_assetIndex].weight;
 
-    //         if(assetId == 6) {
-    //             scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.RARE)) ? AssetRarity(_previousRarity) : AssetRarity.RARE);
-    //         }
-            
-    //         emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.RARE)), block.timestamp);
-    //     } else if(randomNumber >= 70 && randomNumber <= 95) {
-    //         if(assetId == 4) {
-    //             scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
-    //         }
+        if(_state == 1) return currentWeight;
 
-    //         if(assetId == 5) {
-    //             scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
-    //         }
+        for(uint i = 0; i < assetsUniqueWeights[_assetId].length; i++) {
+            if(assetsUniqueWeights[_assetId][i] == currentWeight) {
+                if(_state == 0 && i != 0) {
+                    currentWeight = assetsUniqueWeights[_assetId][i-1];
+                } else if(_state == 2 && i != assetsUniqueWeights[_assetId].length-1) {
+                    currentWeight = assetsUniqueWeights[_assetId][i+1];
+                }
+                break;
+            }
+        }
+        
+        return currentWeight;
+    }
 
-    //         if(assetId == 6) {
-    //             scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.EPIC_RARE)) ? AssetRarity(_previousRarity) : AssetRarity.EPIC_RARE);
-    //         }
+    function setWeightChange(uint _assetId, uint256 _assetIndex, uint _state) private view returns(Asset memory) {
+        uint256 currentWeight = weightChange(_assetId, _assetIndex, _state);
+        uint256 count;
 
-    //         emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.EPIC_RARE)), block.timestamp);
-    //     } else {
-    //         if(assetId == 4) {
-    //             scionsData[tokenId].wings = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
-    //         }
+        for(uint i = 0; i < assets[_assetId].length; i++) {
+            if(assets[_assetId][i].weight == currentWeight) {
+                count++;
+            }
+        }
 
-    //         if(assetId == 5) {
-    //             scionsData[tokenId].hands = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
-    //         }
+        Asset[] memory assetsTemp = new Asset[](count);
+        uint256 index;
 
-    //         if(assetId == 6) {
-    //             scionsData[tokenId].sigil = Asset(true, _previousRarity > int256(uint256(AssetRarity.LEGENDARY)) ? AssetRarity(_previousRarity) : AssetRarity.LEGENDARY);
-    //         }
+        for(uint i = 0; i < assets[_assetId].length; i++) {
+            if(assets[_assetId][i].weight == currentWeight) {
+                assetsTemp[index] = assets[_assetId][i];
+                index++;
+            }
+        }
 
-    //         emit Reroll(tokenId, assetId, _previousRarity, int256(uint256(AssetRarity.LEGENDARY)), block.timestamp);
-    //     }
-    // }
+        uint256 _random = random(count, 0);
+
+        return assetsTemp[_random];
+    }
+
+    function handleWeightChange(uint256 _assetIndex, uint _assetId, uint _tokenId, uint _state, uint _price) internal {
+
+        uint _previousWeight;
+
+        if(_assetId == 0) {  
+            _previousWeight = scionsData[_tokenId].background.weight;
+            scionsData[_tokenId].background = setWeightChange(_assetId, _assetIndex, _state);
+        }
+
+        if(_assetId == 1) {  
+            _previousWeight = scionsData[_tokenId].halo.weight;
+            scionsData[_tokenId].halo = setWeightChange(_assetId, _assetIndex, _state);
+        }
+
+        if(_assetId == 2) {  
+            _previousWeight = scionsData[_tokenId].head.weight;
+            scionsData[_tokenId].head = setWeightChange(_assetId, _assetIndex, _state);
+        }
+
+        if(_assetId == 3) {  
+            _previousWeight = scionsData[_tokenId].body.weight;
+            scionsData[_tokenId].body = setWeightChange(_assetId, _assetIndex, _state);
+        }
+
+        if(_assetId == 4) {  
+            _previousWeight = scionsData[_tokenId].wings.weight;
+            scionsData[_tokenId].wings = setWeightChange(_assetId, _assetIndex, _state);
+        }
+
+        if(_assetId == 5) {  
+            _previousWeight = scionsData[_tokenId].hands.weight;
+            scionsData[_tokenId].hands = setWeightChange(_assetId, _assetIndex, _state);
+        }
+
+        if(_assetId == 6) {  
+            _previousWeight = scionsData[_tokenId].sigil.weight;
+            scionsData[_tokenId].sigil = setWeightChange(_assetId, _assetIndex, _state);
+        }
+
+        emit Reroll(_tokenId, _assetId, int256(_previousWeight), int256(scionsData[_tokenId].background.weight), _price, block.timestamp);
+    }
+    
 
     // Shows the minting pass rarity
     // function getMintingPassData(uint256 tokenId) public view returns (Rarity){
@@ -459,9 +442,11 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
     function rerollAsset(uint256 tokenId, uint256 assetId) public {
         require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
         require(assetId <= 6);
+        uint _price = rerollPrice(assetId, tokenId);
 
-        keter.safeTransferFrom(msg.sender, address(this), rerollPrice);
-        requestRandomWords(tokenId, int256(assetId), 0, -1, 2);
+        keter.safeTransferFrom(msg.sender, address(this), _price);
+        rerollCalculate(random(BP, 0), assetId, tokenId, _price);
+        //requestRandomWords(tokenId, int256(assetId), 0, -1, 2);
     }
 
     function claimScion(uint256 tokenId) public {
@@ -470,7 +455,7 @@ contract Scion is Ownable, ERC721Enumerable, VRFConsumerBaseV2 {
         // Burning minting pass
         mintingPass.burn(tokenId);
         
-        requestRandomWords(_tokenIdTracker.current(), -1, tokenId, 0, 7);
+        defineAssets(_tokenIdTracker.current(), tokenId, 0);
         
         _safeMint(msg.sender, _tokenIdTracker.current());
 

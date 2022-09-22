@@ -46,6 +46,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     mapping (address => mapping (uint256 => uint256)) public userBidIndexes;
     mapping (address => mapping (uint256 => uint256)) public bidIndexes;
     mapping (uint256 => bytes32) public mintingPassClass;
+    mapping (uint256 => uint256) public mintingPassRandom;
     mapping (address => bool) public userClaimed;
 
     // mapping (uint256 => Rarity) public tokenRarity; // Could be done like this
@@ -219,6 +220,11 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         return result;
     }
 
+    function random(uint _tokenId) internal view returns(uint){
+        return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,  
+        msg.sender, _tokenId))) % 1000;
+    }
+
     function claimPass() external onlyWhenFinished {
         // This assumes that the auction overpassed the total bids limit
         require(!userClaimed[_msgSender()], "User already claimed");
@@ -228,7 +234,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         for(uint i = 0; i < userBidIds[_msgSender()].length; i++) {
             if(bids[userBidIds[_msgSender()][i]].bidValue > 0 && getBidClass(userBidIds[_msgSender()][i]) != 0x00) {
                 mintingPassClass[_tokenIdTracker.current()] = getBidClass(userBidIds[_msgSender()][i]);
-
+                mintingPassRandom[_tokenIdTracker.current()] = random(_tokenIdTracker.current());
                 payable(treasury).transfer(bids[userBidIds[_msgSender()][i]].bidValue);
 
                 _safeMint(_msgSender(), _tokenIdTracker.current());

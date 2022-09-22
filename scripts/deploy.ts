@@ -45,7 +45,7 @@ async function main() {
   await wait(30_000);
 
   const Scion = await hre.ethers.getContractFactory("Scion");
-  const scion = await Scion.deploy(args.SUBSCRIPTION_ID, args.VRF_COORDINATOR_ADDRESS, args.LINK_TOKEN_ADDRESS, args.VRF_KEY_HASH, mintPasses.address, soul.address, keter.address, args.SCION_NAME, args.SCION_SYMBOL, args.SCION_BASE_TOKEN_URI);
+  const scion = await Scion.deploy(mintPasses.address, soul.address, keter.address, args.SCION_NAME, args.SCION_SYMBOL, args.SCION_BASE_TOKEN_URI);
   
   console.log("Scion address:", scion.address);
 
@@ -66,7 +66,7 @@ async function main() {
 
   await wait(30_000);
 
-  let tx: ContractTransaction = await scion.setBackgroundAssets(
+  let tx: ContractTransaction = await scion.setAssets(0,
     [ "BGND001",
       "BGND002",
       "BGND005",
@@ -78,7 +78,7 @@ async function main() {
   
   await tx.wait();
 
-  tx = await scion.setHaloAssets(
+  tx = await scion.setAssets(1,
     [ "HALO002",
       "HALO003",
       "HALO004",
@@ -105,7 +105,7 @@ async function main() {
   
     await tx.wait();
 
-    tx = await scion.setWingsAssets(
+    tx = await scion.setAssets(4,
       [ "WING000",
         "WING001",
         "WING002",
@@ -124,7 +124,7 @@ async function main() {
     await tx.wait();
       
 
-    tx = await scion.setHeadAssets(
+    tx = await scion.setAssets(2,
       [ "HEAD001",
         "HEAD002",
         "HEAD003",
@@ -217,7 +217,7 @@ async function main() {
     await tx.wait();
 
 
-    tx = await scion.setBodyAssets(
+    tx = await scion.setAssets(3,
       [   "BODY001",
           "BODY004",
           "BODY005c",
@@ -284,7 +284,7 @@ async function main() {
     
     await tx.wait();
 
-    tx = await scion.setHandsAssets(
+    tx = await scion.setAssets(5,
       [ "HAND000",
         "HAND001",
         "HAND003",
@@ -329,7 +329,7 @@ async function main() {
     await tx.wait();
     
 
-    tx = await scion.setSigilAssets(
+    tx = await scion.setAssets(6,
       [ "SIGL000",
         "SIGL006",
         "SIGL007",
