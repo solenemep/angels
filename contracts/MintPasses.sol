@@ -101,11 +101,12 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         uint256 _start, // Not being used
         uint256 _auctionDuration,
         uint64 subscriptionId,
-        address vrfCoordinator, 
-        address link, 
+        address vrfCoordinator,
+        address link,
         bytes32 _keyHash
-    ) 
-        ERC721(name, symbol) 
+    )
+        // TODO assert non empty treasury
+        ERC721(name, symbol)
         MintPassRarityGenerator(subscriptionId, vrfCoordinator, link, _keyHash) {
         // uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash
         _baseTokenURI = baseTokenURI;
@@ -158,7 +159,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
 
        return result;
     }
-    
+
     function setClasses(bytes32[] memory _class, uint256[] memory _bottom, uint256[] memory _top, uint256[] memory _timestamp) public {
         require(_class.length == _bottom.length && _bottom.length == _top.length && _top.length == _timestamp.length);
         for(uint i = 0; i < _class.length; i++) {
@@ -221,7 +222,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     }
 
     function random(uint _tokenId) internal view returns(uint){
-        return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,  
+        return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,
         msg.sender, _tokenId))) % 1000;
     }
 
@@ -252,7 +253,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         require(bidValue > minimumBidAmount, "Bid value must be bigger then minimum bid");
         require(msg.value >= bidValue * bidsAmount, "There is not enough funds to make bids");
         require(bidsAmount <= 30, "Too many bids during 1 transaction");
-        
+
         for(uint i = 0; i < bidsAmount; i++) {
             bids[latestBidId] = Bid(latestBidId, bidValue, _msgSender(), block.timestamp);
             userBidIndexes[_msgSender()][latestBidId] = userBidIds[_msgSender()].length == 0 ? 0 : userBidIds[_msgSender()].length - 1;
@@ -266,6 +267,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         }
     }
 
+    //TODO do we need 'newBidValue' here? We can just use 'msg.value'
     function updateBid(uint bidId, uint newBidValue) external payable onlyActive nonReentrant {
         require(newBidValue <= bids[bidId].bidValue + msg.value, "New bid amount must be bigger then original");
         require(msg.value > 0, "There is not enough funds to update bid");
@@ -276,6 +278,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     }
 
     function cancelBid(uint bidId) external nonReentrant {
+        //TODO we should't allow canceling bid after the auction is over, even if no limits set
         require((block.timestamp > start && block.timestamp < start + auctionDuration) || (block.timestamp > start + auctionDuration && classes[BRONZE].top != 0 && getBidClass(bidId) == 0x00));
         require(_msgSender() == bids[bidId].bidder, "You are not an owner of the bid");
         uint256 _bidValue = bids[bidId].bidValue;

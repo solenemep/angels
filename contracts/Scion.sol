@@ -4,8 +4,6 @@ pragma solidity 0.8.10;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -14,16 +12,13 @@ import "./MintPasses.sol";
 
 
 contract Scion is Ownable, ERC721Enumerable {
-    // Mint, receives the minting pass NFT, burns it to create a Scion  
+    // Mint, receives the minting pass NFT, burns it to create a Scion
     using Counters for Counters.Counter;
     using Strings for uint256;
     using SafeERC20 for IERC20;
-    
+
     MintPasses public mintingPass;
     Counters.Counter private _tokenIdTracker;
-
-    VRFCoordinatorV2Interface COORDINATOR;
-    LinkTokenInterface LINKTOKEN;
 
     /**
         @dev tokenId to nesting start time (0 = not nesting).
@@ -35,8 +30,9 @@ contract Scion is Ownable, ERC721Enumerable {
      */
     mapping(uint256 => uint256) private nestingTotal;
 
-    uint256 priceForRarityInSouls = 100e18;
-    uint256 BP = 10000;
+    uint256 public constant priceForRarityInSouls = 100e18;
+    uint256 public constant BP = 10000;
+    uint256 private constant MAX_WEIGHT = 2500;
 
     /**
         @notice Whether nesting is currently allowed.
@@ -127,19 +123,16 @@ contract Scion is Ownable, ERC721Enumerable {
     }
 
     function rerollPrice(uint256 _assetId, uint256 _tokenID) public view returns (uint256 _price) {
-
-        uint256 _weightMax = assets[_assetId][0].weight;
-
         Asset memory _assetTemp = _assetId == 0 ? scionsData[_tokenID].background :
-            (_assetId == 1 ? scionsData[_tokenID].halo : 
-                (_assetId == 2 ? scionsData[_tokenID].head : 
-                    (_assetId == 3 ? scionsData[_tokenID].body : 
-                        (_assetId == 4 ? scionsData[_tokenID].wings : 
-                            (_assetId == 5 ? scionsData[_tokenID].hands : 
+            (_assetId == 1 ? scionsData[_tokenID].halo :
+                (_assetId == 2 ? scionsData[_tokenID].head :
+                    (_assetId == 3 ? scionsData[_tokenID].body :
+                        (_assetId == 4 ? scionsData[_tokenID].wings :
+                            (_assetId == 5 ? scionsData[_tokenID].hands :
                                 scionsData[_tokenID].sigil)))));
 
         uint256 _weightWanted = assetsUniqueWeights[_assetId][(_assetTemp.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? _assetTemp.assetIndex : _assetTemp.assetIndex + 1];
-        _price = _weightMax - _assetTemp.weight + _weightWanted + ((_assetTemp.weight + _weightWanted) / _weightWanted**2 );
+        _price = MAX_WEIGHT - _assetTemp.weight + _weightWanted + ((_assetTemp.weight + _weightWanted) / _weightWanted**2 );
     }
 
     function nestingPeriod(uint256 tokenId) external view returns (bool nesting, uint256 current, uint256 total) {
@@ -209,7 +202,7 @@ contract Scion is Ownable, ERC721Enumerable {
     }
 
     function random(uint number, uint _salt) internal view returns(uint){
-        return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,  
+        return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,
         msg.sender, _salt))) % number;
     }
 
@@ -217,7 +210,7 @@ contract Scion is Ownable, ERC721Enumerable {
         uint256 previousWeightTemp;
         uint256 salt = mintingPass.mintingPassRandom(_mintPassId);
         uint256 randomNumber = random(assetsTotalWeight[_assetId], salt);
-            
+
         emit RandomGenerated(randomNumber);
 
         for(uint i; i < assets[_assetId].length; i++) {
@@ -244,13 +237,13 @@ contract Scion is Ownable, ERC721Enumerable {
             previousWeightTemp = assets[_assetId][i].weight;
         }
     }
-    
+
     function defineAssets(
         uint256 scionTokenId,
-        uint256 mintPassId, 
+        uint256 mintPassId,
         int256 mintPassRarity
     ) internal {
-        // Mint when I get the callback             
+        // Mint when I get the callback
             int256 _rarity = mintPassRarity;
 
             for(uint i; i <= 6; i++) {
@@ -263,47 +256,47 @@ contract Scion is Ownable, ERC721Enumerable {
     // rarity should not be less then it was before
     function rerollCalculate(uint256 _randomNumber, uint256 _assetId, uint256 _tokenId, uint256 _price) private {
             if(_assetId == 0) {
-                handleWeightChange(scionsData[_tokenId].background.assetIndex, _assetId, _tokenId, 
-                _randomNumber <= rerollChances.downgrade ? 
-                    0 : 
+                handleWeightChange(scionsData[_tokenId].background.assetIndex, _assetId, _tokenId,
+                _randomNumber <= rerollChances.downgrade ?
+                    0 :
                         ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
-                ); 
+                );
             } else if(_assetId == 1) {
-                handleWeightChange(scionsData[_tokenId].halo.assetIndex, _assetId, _tokenId, 
-                _randomNumber <= rerollChances.downgrade ? 
-                    0 : 
+                handleWeightChange(scionsData[_tokenId].halo.assetIndex, _assetId, _tokenId,
+                _randomNumber <= rerollChances.downgrade ?
+                    0 :
                         ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
-                ); 
+                );
             } else if(_assetId == 2) {
-                handleWeightChange(scionsData[_tokenId].head.assetIndex, _assetId, _tokenId, 
-                _randomNumber <= rerollChances.downgrade ? 
-                    0 : 
+                handleWeightChange(scionsData[_tokenId].head.assetIndex, _assetId, _tokenId,
+                _randomNumber <= rerollChances.downgrade ?
+                    0 :
                         ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
-                ); 
+                );
             } else if(_assetId == 3) {
-                handleWeightChange(scionsData[_tokenId].body.assetIndex, _assetId, _tokenId, 
-                _randomNumber <= rerollChances.downgrade ? 
-                    0 : 
+                handleWeightChange(scionsData[_tokenId].body.assetIndex, _assetId, _tokenId,
+                _randomNumber <= rerollChances.downgrade ?
+                    0 :
                         ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
-                ); 
+                );
             } else if(_assetId == 4) {
-                handleWeightChange(scionsData[_tokenId].wings.assetIndex, _assetId, _tokenId, 
-                _randomNumber <= rerollChances.downgrade ? 
-                    0 : 
+                handleWeightChange(scionsData[_tokenId].wings.assetIndex, _assetId, _tokenId,
+                _randomNumber <= rerollChances.downgrade ?
+                    0 :
                         ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
-                ); 
+                );
             } else if(_assetId == 5) {
-                handleWeightChange(scionsData[_tokenId].hands.assetIndex, _assetId, _tokenId, 
-                _randomNumber <= rerollChances.downgrade ? 
-                    0 : 
+                handleWeightChange(scionsData[_tokenId].hands.assetIndex, _assetId, _tokenId,
+                _randomNumber <= rerollChances.downgrade ?
+                    0 :
                         ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
-                ); 
+                );
             } else if(_assetId == 6) {
-                handleWeightChange(scionsData[_tokenId].sigil.assetIndex, _assetId, _tokenId, 
-                _randomNumber <= rerollChances.downgrade ? 
-                    0 : 
+                handleWeightChange(scionsData[_tokenId].sigil.assetIndex, _assetId, _tokenId,
+                _randomNumber <= rerollChances.downgrade ?
+                    0 :
                         ((_randomNumber > rerollChances.downgrade && _randomNumber <= rerollChances.sameWeight) ? 1 : 2), _price
-                ); 
+                );
             }
     }
 
@@ -322,7 +315,7 @@ contract Scion is Ownable, ERC721Enumerable {
                 break;
             }
         }
-        
+
         return currentWeight;
     }
 
@@ -355,44 +348,44 @@ contract Scion is Ownable, ERC721Enumerable {
 
         uint _previousWeight;
 
-        if(_assetId == 0) {  
+        if(_assetId == 0) {
             _previousWeight = scionsData[_tokenId].background.weight;
             scionsData[_tokenId].background = setWeightChange(_assetId, _assetIndex, _state);
         }
 
-        if(_assetId == 1) {  
+        if(_assetId == 1) {
             _previousWeight = scionsData[_tokenId].halo.weight;
             scionsData[_tokenId].halo = setWeightChange(_assetId, _assetIndex, _state);
         }
 
-        if(_assetId == 2) {  
+        if(_assetId == 2) {
             _previousWeight = scionsData[_tokenId].head.weight;
             scionsData[_tokenId].head = setWeightChange(_assetId, _assetIndex, _state);
         }
 
-        if(_assetId == 3) {  
+        if(_assetId == 3) {
             _previousWeight = scionsData[_tokenId].body.weight;
             scionsData[_tokenId].body = setWeightChange(_assetId, _assetIndex, _state);
         }
 
-        if(_assetId == 4) {  
+        if(_assetId == 4) {
             _previousWeight = scionsData[_tokenId].wings.weight;
             scionsData[_tokenId].wings = setWeightChange(_assetId, _assetIndex, _state);
         }
 
-        if(_assetId == 5) {  
+        if(_assetId == 5) {
             _previousWeight = scionsData[_tokenId].hands.weight;
             scionsData[_tokenId].hands = setWeightChange(_assetId, _assetIndex, _state);
         }
 
-        if(_assetId == 6) {  
+        if(_assetId == 6) {
             _previousWeight = scionsData[_tokenId].sigil.weight;
             scionsData[_tokenId].sigil = setWeightChange(_assetId, _assetIndex, _state);
         }
 
         emit Reroll(_tokenId, _assetId, int256(_previousWeight), int256(scionsData[_tokenId].background.weight), _price, block.timestamp);
     }
-    
+
 
     // Shows the minting pass rarity
     // function getMintingPassData(uint256 tokenId) public view returns (Rarity){
@@ -414,9 +407,9 @@ contract Scion is Ownable, ERC721Enumerable {
 
         // Burning minting pass
         mintingPass.burn(tokenId);
-        
+
         defineAssets(_tokenIdTracker.current(), tokenId, 0);
-        
+
         _safeMint(msg.sender, _tokenIdTracker.current());
 
         _tokenIdTracker.increment();
