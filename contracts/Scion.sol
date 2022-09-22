@@ -38,22 +38,6 @@ contract Scion is Ownable, ERC721Enumerable {
     uint256 priceForRarityInSouls = 100e18;
     uint256 BP = 10000;
 
-    uint256 public totalBackgroundAssetsAmount;
-    uint256 public totalHaloAssetsAmount;
-    uint256 public totalHeadAssetsAmount;
-    uint256 public totalBodyAssetsAmount;
-    uint256 public totalWingsAssetsAmount;
-    uint256 public totalHandsAssetsAmount;
-    uint256 public totalSigilAssetsAmount;
-
-    uint256 public totalBackgroundAssetsWeight;
-    uint256 public totalHaloAssetsWeight;
-    uint256 public totalHeadAssetsWeight;
-    uint256 public totalBodyAssetsWeight;
-    uint256 public totalWingsAssetsWeight;
-    uint256 public totalHandsAssetsWeight;
-    uint256 public totalSigilAssetsWeight;
-
     /**
         @notice Whether nesting is currently allowed.
         @dev If false then nesting is blocked, but unnesting is always allowed.
@@ -146,40 +130,16 @@ contract Scion is Ownable, ERC721Enumerable {
 
         uint256 _weightMax = assets[_assetId][0].weight;
 
-        if(_assetId == 0) {
-            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].background.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
-            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].background.weight + _weightWanted) / _weightWanted**2 );
-        } 
+        Asset memory _assetTemp = _assetId == 0 ? scionsData[_tokenID].background :
+            (_assetId == 1 ? scionsData[_tokenID].halo : 
+                (_assetId == 2 ? scionsData[_tokenID].head : 
+                    (_assetId == 3 ? scionsData[_tokenID].body : 
+                        (_assetId == 4 ? scionsData[_tokenID].wings : 
+                            (_assetId == 5 ? scionsData[_tokenID].hands : 
+                                scionsData[_tokenID].sigil)))));
 
-        if(_assetId == 1) {
-            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].halo.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
-            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].halo.weight + _weightWanted) / _weightWanted**2 );
-        }
-
-        if(_assetId == 2) {
-            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].head.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
-            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].head.weight + _weightWanted) / _weightWanted**2 );
-        }
-
-        if(_assetId == 3) {
-            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].body.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
-            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].body.weight + _weightWanted) / _weightWanted**2 );
-        }
-
-        if(_assetId == 4) {
-            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].wings.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
-            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].wings.weight + _weightWanted) / _weightWanted**2 );
-        }
-
-        if(_assetId == 5) {
-            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].hands.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
-            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].hands.weight + _weightWanted) / _weightWanted**2 );
-        }
-
-        if(_assetId == 6) {
-            uint256 _weightWanted = assetsUniqueWeights[_assetId][(scionsData[_tokenID].sigil.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? scionsData[_tokenID].background.assetIndex : scionsData[_tokenID].background.assetIndex + 1];
-            _price = _weightMax - scionsData[_tokenID].background.weight + _weightWanted + ((scionsData[_tokenID].sigil.weight + _weightWanted) / _weightWanted**2 );
-        }
+        uint256 _weightWanted = assetsUniqueWeights[_assetId][(_assetTemp.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? _assetTemp.assetIndex : _assetTemp.assetIndex + 1];
+        _price = _weightMax - _assetTemp.weight + _weightWanted + ((_assetTemp.weight + _weightWanted) / _weightWanted**2 );
     }
 
     function nestingPeriod(uint256 tokenId) external view returns (bool nesting, uint256 current, uint256 total) {
@@ -465,23 +425,11 @@ contract Scion is Ownable, ERC721Enumerable {
     function burnForSoul(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
 
-        soul.safeTransfer(msg.sender, rarity(tokenId) * priceForRarityInSouls);
+        soul.safeTransfer(msg.sender, 1 * priceForRarityInSouls);
        _burn(tokenId); // add new burn with scionsData
     }
 
     function priceInSouls(uint256 tokenId) public view returns (uint256 price) {
-        return rarity(tokenId) * priceForRarityInSouls;
-    }
-
-    function rarity(uint256 tokenId) public view returns (uint256 _rarity) {
-
-        _rarity += uint256(scionsData[tokenId].background.weight) + 1;
-        _rarity += uint256(scionsData[tokenId].halo.weight) + 1;
-        _rarity += uint256(scionsData[tokenId].head.weight) + 1;
-        _rarity += uint256(scionsData[tokenId].body.weight) + 1;
-
-        _rarity += scionsData[tokenId].wings.hasIt ? uint256(scionsData[tokenId].wings.weight) + 1 : 0;
-        _rarity += scionsData[tokenId].hands.hasIt ? uint256(scionsData[tokenId].hands.weight) + 1 : 0;
-        _rarity += scionsData[tokenId].sigil.hasIt ? uint256(scionsData[tokenId].sigil.weight) + 1 : 0;
+        return 1 * priceForRarityInSouls;
     }
 }
