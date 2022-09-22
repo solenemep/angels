@@ -1,0 +1,50 @@
+//SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.10;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./IAssetRegistry.sol";
+
+contract AssetsRegistry is Ownable, IAssetRegistry {
+    // asset type -> count of assets
+    //TODO Delete?
+    mapping(uint256 => uint256) public assetsTotalAmount;
+    // asset type -> set of weights
+    mapping(uint256 => uint256[]) public assetsUniqueWeights;
+    // asset type -> total weight
+    mapping(uint256 => uint256) public assetsTotalWeight;
+    // asset type -> array of assets
+    mapping(uint256 => Asset[]) public assets;
+
+
+    constructor() {
+    }
+
+    function setAssets(uint _assetId, string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {
+        require(_assets.length == _weights.length && _names.length == _assets.length);
+        assetsTotalAmount[_assetId] = 0;
+        uint _previousWeight;
+        for(uint256 i; i < _assets.length; i++) {
+            assets[_assetId].push(Asset(false, _assets[i], _weights[i], _names[i], i));
+            assetsTotalAmount[_assetId]++;
+
+            if(_weights[i] != _previousWeight) {
+                _previousWeight = _weights[i];
+                assetsUniqueWeights[_assetId].push(_weights[i]);
+            }
+        }
+        assetsTotalWeight[_assetId] = _weights[_assets.length-1];
+    }
+
+    function uniqueWeightsForType(uint _assetId) public view override returns (uint256[] memory){
+        return assetsUniqueWeights[_assetId];
+    }
+
+    function assetsForType(uint _assetId) public view override returns (Asset[] memory){
+        return assets[_assetId];
+    }
+
+    function totalWeightForType(uint _assetId) public view override returns (uint256){
+        return assetsTotalWeight[_assetId];
+    }
+
+}
