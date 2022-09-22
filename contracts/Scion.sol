@@ -94,11 +94,13 @@ contract Scion is Ownable, ERC721Enumerable {
     event Unnested(uint256 indexed tokenId);
     event RandomGenerated(uint256 random);
 
-    constructor(address _mintingPass, address _soul, address _keter, string memory name, string memory symbol, string memory baseTokenURI) ERC721(name, symbol) {
+    constructor(address _mintingPass, address _soul, address _keter, string memory name, string memory symbol, string memory baseTokenURI, uint256 _downgrade, uint256 _sameWeight, uint256 _rarityPlus) ERC721(name, symbol) {
         mintingPass = MintPasses(_mintingPass);
         soul = IERC20(_soul);
         keter = IERC20(_keter);
         _baseTokenURI = baseTokenURI;
+
+        rerollChances = RerollChances(_downgrade, _sameWeight, _rarityPlus);
     }
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {
@@ -172,14 +174,6 @@ contract Scion is Ownable, ERC721Enumerable {
             nestingStarted[tokenId] = 0;
             emit Unnested(tokenId);
         }
-    }
-
-    function setPriceInSoulsForRarity(uint256 _priceInSouls) external onlyOwner {
-        priceForRarityInSouls = _priceInSouls;
-    }
-
-    function setRerollChances(RerollChances memory _rerollChances) external onlyOwner {
-        rerollChances = _rerollChances;
     }
 
     function setAssets(uint _assetId, string[] memory _assets, uint256[] memory _weights, string[] memory _names) external onlyOwner {

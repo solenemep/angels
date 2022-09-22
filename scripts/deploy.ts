@@ -45,7 +45,7 @@ async function main() {
   await wait(30_000);
 
   const Scion = await hre.ethers.getContractFactory("Scion");
-  const scion = await Scion.deploy(mintPasses.address, soul.address, keter.address, args.SCION_NAME, args.SCION_SYMBOL, args.SCION_BASE_TOKEN_URI);
+  const scion = await Scion.deploy(mintPasses.address, soul.address, keter.address, args.SCION_NAME, args.SCION_SYMBOL, args.SCION_BASE_TOKEN_URI, args.DOWNGRADE, args.SAME_WEIGHT, args.RARITY_PLUS);
   
   console.log("Scion address:", scion.address);
 
@@ -385,7 +385,7 @@ async function main() {
 
   console.log("Keter verified");
 
-  verifyScript = verify.buildVerifyScript('Scion', scion.address, hre.network.name, `${args.SUBSCRIPTION_ID} ${args.VRF_COORDINATOR_ADDRESS} ${args.LINK_TOKEN_ADDRESS} ${args.VRF_KEY_HASH} ${mintPasses.address} ${soul.address} ${keter.address} ${args.SCION_NAME} ${args.SCION_SYMBOL} ${args.SCION_BASE_TOKEN_URI}`);
+  verifyScript = verify.buildVerifyScript('Scion', scion.address, hre.network.name, `${mintPasses.address} ${soul.address} ${keter.address} ${args.SCION_NAME} ${args.SCION_SYMBOL} ${args.SCION_BASE_TOKEN_URI} ${args.DOWNGRADE} ${args.SAME_WEIGHT} ${args.RARITY_PLUS}`);
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
 

@@ -14,7 +14,10 @@
   'SCION_SYMBOL',
   'SOUL_NAME',
   'SOUL_SYMBOL',
-  'SCION_BASE_TOKEN_URI'
+  'SCION_BASE_TOKEN_URI',
+  'DOWNGRADE',
+  'SAME_WEIGHT',
+  'RARITY_PLUS'
 ].forEach(i => {
   if (!process.env[i]) {
     throw new Error(
@@ -39,7 +42,10 @@ const {
    SCION_SYMBOL,
    SOUL_NAME,
    SOUL_SYMBOL,
-   SCION_BASE_TOKEN_URI
+   SCION_BASE_TOKEN_URI,
+   DOWNGRADE,
+   SAME_WEIGHT,
+   RARITY_PLUS
   } = process.env;
 
 export default {
@@ -58,5 +64,8 @@ export default {
   SCION_SYMBOL,
   SOUL_NAME,
   SOUL_SYMBOL,
-  SCION_BASE_TOKEN_URI
+  SCION_BASE_TOKEN_URI,
+  DOWNGRADE,
+  SAME_WEIGHT,
+  RARITY_PLUS
 }
