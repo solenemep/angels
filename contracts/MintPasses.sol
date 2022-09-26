@@ -267,10 +267,10 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
         }
     }
 
-    //TODO do we need 'newBidValue' here? We can just use 'msg.value'
-    function updateBid(uint bidId, uint newBidValue) external payable onlyActive nonReentrant {
-        require(newBidValue <= bids[bidId].bidValue + msg.value, "New bid amount must be bigger then original");
+    function updateBid(uint bidId) external payable onlyActive nonReentrant {
         require(msg.value > 0, "There is not enough funds to update bid");
+        require(_msgSender() == bids[bidId].bidder, "Not the owner of the bid");
+        uint newBidValue = bids[bidId].bidValue + msg.value;
 
         emit BidUpdated(_msgSender(), bids[bidId].bidValue, newBidValue, bidId,  block.timestamp);
         bids[bidId] = Bid(bidId, newBidValue, _msgSender(), block.timestamp);
@@ -280,7 +280,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard, Mint
     function cancelBid(uint bidId) external nonReentrant {
         //TODO we should't allow canceling bid after the auction is over, even if no limits set
         require((block.timestamp > start && block.timestamp < start + auctionDuration) || (block.timestamp > start + auctionDuration && classes[BRONZE].top != 0 && getBidClass(bidId) == 0x00));
-        require(_msgSender() == bids[bidId].bidder, "You are not an owner of the bid");
+        require(_msgSender() == bids[bidId].bidder, "Not the owner of the bid");
         uint256 _bidValue = bids[bidId].bidValue;
 
         delete bids[bidId];
