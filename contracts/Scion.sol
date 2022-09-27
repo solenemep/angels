@@ -61,6 +61,7 @@ contract Scion is Ownable, ERC721Enumerable {
     mapping(uint256 => Scions) public scionsData;
     mapping(uint256 => Asset[]) public assets;
     mapping(uint256 => uint256[]) public assetsUniqueWeights;
+    mapping(uint256 => uint256) public assetsUniqueWeightsIndexes;
     mapping(uint256 => uint256) public assetsTotalWeight;
     mapping(uint256 => uint256) public assetsTotalAmount;
 
@@ -111,7 +112,7 @@ contract Scion is Ownable, ERC721Enumerable {
                             (_assetId == 5 ? scionsData[_tokenID].hands :
                                 scionsData[_tokenID].sigil)))));
 
-        uint256 _weightWanted = assetsUniqueWeights[_assetId][(_assetTemp.assetIndex == assetsUniqueWeights[_assetId].length - 1) ? _assetTemp.assetIndex : _assetTemp.assetIndex + 1];
+        uint256 _weightWanted = assetsUniqueWeights[_assetId][(assetsUniqueWeightsIndexes[_assetTemp.weight] == assetsUniqueWeights[_assetId].length - 1) ? assetsUniqueWeightsIndexes[_assetTemp.weight] : assetsUniqueWeightsIndexes[_assetTemp.weight] + 1];
         _price = MAX_WEIGHT - _assetTemp.weight + _weightWanted + ((_assetTemp.weight + _weightWanted) / _weightWanted**2 );
     }
 
@@ -127,7 +128,9 @@ contract Scion is Ownable, ERC721Enumerable {
 
             if(_weights[i] != _previousWeight) {
                 _previousWeight = _weights[i];
+                assetsUniqueWeightsIndexes[_weights[i]] = assetsUniqueWeights[_assetId].length;
                 assetsUniqueWeights[_assetId].push(_weights[i]);
+                
             }
         }
 
