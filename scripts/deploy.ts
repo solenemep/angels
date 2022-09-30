@@ -44,29 +44,16 @@ async function main() {
 
   await wait(30_000);
 
-  const Scion = await hre.ethers.getContractFactory("Scion");
-  const scion = await Scion.deploy(mintPasses.address, soul.address, keter.address, args.SCION_NAME, args.SCION_SYMBOL, args.SCION_BASE_TOKEN_URI, args.DOWNGRADE, args.SAME_WEIGHT, args.RARITY_PLUS);
-  
-  console.log("Scion address:", scion.address);
+  /***********************   ASSETS *******************************************/
 
-  await wait(30_000);
-  
-  (await mintPasses.setScionAddress(scion.address)).wait();
+  const AssetRegistry = await hre.ethers.getContractFactory("AssetsRegistry");
+  const assetRegistry = await AssetRegistry.deploy();
 
-  await wait(30_000);
-
-  (await soul.transfer(scion.address, "1000000000000000000000000000")).wait();
+  console.log("AssetRegistry address:", assetRegistry.address);
 
   await wait(30_000);
 
-  const Archangel = await hre.ethers.getContractFactory("Archangel");
-  const archangel = await Archangel.deploy(soul.address);
-
-  console.log("Archangel address:", archangel.address);
-
-  await wait(30_000);
-
-  let tx: ContractTransaction = await scion.setAssets(0,
+  let tx: ContractTransaction = await assetRegistry.setAssets(0,
     [ "BGND001",
       "BGND002",
       "BGND005",
@@ -79,7 +66,7 @@ async function main() {
   
   await tx.wait();
 
-  tx = await scion.setAssets(1,
+  tx = await assetRegistry.setAssets(1,
     [ "HALO002",
       "HALO003",
       "HALO004",
@@ -107,7 +94,7 @@ async function main() {
   
     await tx.wait();
 
-    tx = await scion.setAssets(4,
+    tx = await assetRegistry.setAssets(4,
       [ "WING000",
         "WING001",
         "WING002",
@@ -127,7 +114,7 @@ async function main() {
     await tx.wait();
       
 
-    tx = await scion.setAssets(2,
+    tx = await assetRegistry.setAssets(2,
       [ "HEAD001",
         "HEAD002",
         "HEAD003",
@@ -221,7 +208,7 @@ async function main() {
     await tx.wait();
 
 
-    tx = await scion.setAssets(3,
+    tx = await assetRegistry.setAssets(3,
       [   "BODY001",
           "BODY004",
           "BODY005c",
@@ -285,11 +272,11 @@ async function main() {
             "Venerable Body",
             "Dripping Body",
             "Quiet Body"
-          ]);
-    
+        ]);
+
     await tx.wait();
 
-    tx = await scion.setAssets(5,
+    tx = await assetRegistry.setAssets(5,
       [ "HAND000",
         "HAND001",
         "HAND003",
@@ -335,7 +322,7 @@ async function main() {
     await tx.wait();
     
 
-    tx = await scion.setAssets(6,
+    tx = await assetRegistry.setAssets(6,
       [ "SIGL000",
         "SIGL006",
         "SIGL007",
@@ -367,9 +354,32 @@ async function main() {
       "Sign of Ether"]);
     
     await tx.wait();
-    
-  // const chainlink = await Soul.attach("0x01BE23585060835E02B77ef475b0Cc51aA1e0709");
-  // await chainlink.transfer(scion.address, "2000000000000000000");
+
+
+  /***********************   SCIONS *******************************************/
+
+  const Scion = await hre.ethers.getContractFactory("Scion");
+  const scion = await Scion.deploy(mintPasses.address, soul.address, keter.address, assetRegistry.address, args.SCION_NAME, args.SCION_SYMBOL, args.SCION_BASE_TOKEN_URI, args.DOWNGRADE, args.SAME_WEIGHT, args.RARITY_PLUS);
+
+  console.log("Scion address:", scion.address);
+
+  (await soul.transfer(scion.address, "1000000000000000000000000000")).wait();
+
+  await wait(30_000);
+
+  (await mintPasses.setScionAddress(scion.address)).wait();
+
+  await wait(30_000);
+
+  const Archangel = await hre.ethers.getContractFactory("Archangel");
+  const archangel = await Archangel.deploy(soul.address);
+
+  console.log("Archangel address:", archangel.address);
+
+  const Staking = await hre.ethers.getContractFactory("Staking");
+  const staking = await Staking.deploy(keter.address, scion.address);
+
+  console.log("Staking address:", staking.address);
 
   console.log('Waiting 20 seconds before calling verify script...')
   await wait(20_000);
@@ -392,7 +402,13 @@ async function main() {
 
   console.log("Keter verified");
 
-  verifyScript = verify.buildVerifyScript('Scion', scion.address, hre.network.name, `${mintPasses.address} ${soul.address} ${keter.address} ${args.SCION_NAME} ${args.SCION_SYMBOL} ${args.SCION_BASE_TOKEN_URI} ${args.DOWNGRADE} ${args.SAME_WEIGHT} ${args.RARITY_PLUS}`);
+  verifyScript = verify.buildVerifyScript('AssetsRegistry', assetRegistry.address, hre.network.name, ``);
+  verify.logVerifyScript(verifyScript);
+  await verify.verifyContract(verifyScript, 2);
+
+  console.log("AssetsRegistry verified");
+
+  verifyScript = verify.buildVerifyScript('Scion', scion.address, hre.network.name, `${mintPasses.address} ${soul.address} ${keter.address} ${assetRegistry.address} ${args.SCION_NAME} ${args.SCION_SYMBOL} ${args.SCION_BASE_TOKEN_URI} ${args.DOWNGRADE} ${args.SAME_WEIGHT} ${args.RARITY_PLUS}`);
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
 
@@ -403,6 +419,12 @@ async function main() {
   await verify.verifyContract(verifyScript, 2);
 
   console.log("Archangel verified");
+
+  verifyScript = verify.buildVerifyScript('Staking', staking.address, hre.network.name, `${keter.address} ${scion.address}`);
+  verify.logVerifyScript(verifyScript);
+  await verify.verifyContract(verifyScript, 2);
+
+  console.log("Staking verified");
 }
 
 main()
