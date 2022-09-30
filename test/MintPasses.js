@@ -515,7 +515,7 @@ describe("MintPasses", async () => {
     });
   });
 
-  describe.only("claimPass", async () => {
+  describe("claimPass", async () => {
     const bidsAmount = 1;
     const bidValue = toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT)
       .times(2)
@@ -661,9 +661,12 @@ describe("MintPasses", async () => {
     });
   });
 
-  describe.skip("get fees", async () => {
+  describe("get fees", async () => {
     const bidsAmount = 1;
-    const bidValue = toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).plus(1).toString();
+    const bidValue = toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT)
+      .times(2)
+      .plus(1)
+      .toString();
     const value = toBN(bidValue).times(bidsAmount).toString();
 
     it("setClasses", async () => {
@@ -788,7 +791,7 @@ describe("MintPasses", async () => {
           [time, time, time, time, time, time]
         );
 
-      const tx = await mintPasses.connect(user1).claimPass();
+      const tx = await mintPasses.connect(user1).claimPass([1]);
       await getCosts(tx);
     });
   });
