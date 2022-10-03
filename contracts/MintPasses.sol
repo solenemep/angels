@@ -43,7 +43,6 @@ contract MintPasses is
     uint256 public start;
     uint256 public minimumBidAmount;
     uint256 public auctionDuration;
-    bool public active;
     address public scionContract;
     address public treasury;
 
@@ -83,6 +82,7 @@ contract MintPasses is
     //BidInfo[] bidsArray;
 
     struct BidInfo {
+        uint256 bidIndex;
         address bidder;
         uint256 bidValue;
         uint256 timestamp;
@@ -123,19 +123,15 @@ contract MintPasses is
 
     modifier onlyActive() {
         require(
-            active &&
-                (block.timestamp > start &&
-                    block.timestamp < start + auctionDuration),
-            "Inactive"
+            (block.timestamp > start &&
+                block.timestamp < start + auctionDuration),
+            "Auction inactive"
         );
         _;
     }
 
-    modifier onlyWhenFinished() {
-        require(
-            active && (block.timestamp >= start + auctionDuration),
-            "Auction inactive or hasn't finish yet"
-        );
+    modifier onlyInactive() {
+        require((block.timestamp >= start + auctionDuration), "Auction active");
         _;
     }
 
@@ -174,23 +170,25 @@ contract MintPasses is
         return _allBids.length();
     }
 
-    function countOwnedBids() external view returns (uint256) {
-        return _ownedBids[_msgSender()].length();
+    function countOwnedBids(address _user) external view returns (uint256) {
+        return _ownedBids[_user].length();
     }
 
     function getListBids(
         uint256 offset,
         uint256 limit,
-        ListOption listOption
+        ListOption listOption,
+        address bidder
     ) public view returns (BidInfo[] memory bidPublicInfos) {
         uint256 count;
         if (listOption == ListOption.ALL) {
             count = _allBids.length();
         } else if (listOption == ListOption.OWNED) {
-            count = _ownedBids[msg.sender].length();
+            count = _ownedBids[bidder].length();
         }
 
         uint256 to = (offset.add(limit)).min(count).max(offset);
+
         bidPublicInfos = new BidInfo[](to.sub(offset));
 
         for (uint256 i = offset; i < to; i++) {
@@ -198,7 +196,7 @@ contract MintPasses is
             if (listOption == ListOption.ALL) {
                 bidIndex = _allBids.at(i);
             } else if (listOption == ListOption.OWNED) {
-                bidIndex = _ownedBids[msg.sender].at(i);
+                bidIndex = _ownedBids[bidder].at(i);
             }
 
             uint256 newIndex = i.sub(offset);
@@ -226,30 +224,15 @@ contract MintPasses is
             bidClass = BidClass.NONE;
         } else if (bidValue < classes[BidClass.BRONZE].top) {
             bidClass = BidClass.BRONZE;
-        } else if (
-            bidValue >= classes[BidClass.SILVER].bottom &&
-            bidValue < classes[BidClass.SILVER].top
-        ) {
+        } else if (bidValue < classes[BidClass.SILVER].top) {
             bidClass = BidClass.SILVER;
-        } else if (
-            bidValue >= classes[BidClass.GOLD].bottom &&
-            bidValue < classes[BidClass.GOLD].top
-        ) {
+        } else if (bidValue < classes[BidClass.GOLD].top) {
             bidClass = BidClass.GOLD;
-        } else if (
-            bidValue >= classes[BidClass.PLATINUM].bottom &&
-            bidValue < classes[BidClass.PLATINUM].top
-        ) {
+        } else if (bidValue < classes[BidClass.PLATINUM].top) {
             bidClass = BidClass.PLATINUM;
-        } else if (
-            bidValue >= classes[BidClass.RUBY].bottom &&
-            bidValue < classes[BidClass.RUBY].top
-        ) {
+        } else if (bidValue < classes[BidClass.RUBY].top) {
             bidClass = BidClass.RUBY;
-        } else if (
-            bidValue >= classes[BidClass.ONYX].bottom &&
-            bidValue < classes[BidClass.ONYX].top
-        ) {
+        } else if (bidValue < classes[BidClass.ONYX].top) {
             bidClass = BidClass.ONYX;
         }
     }
@@ -287,7 +270,7 @@ contract MintPasses is
         uint256 _bottom,
         uint256 _top,
         uint256 _timestamp
-    ) public onlyOwner {
+    ) public onlyOwner onlyInactive {
         classes[_bidClass] = Class(_bottom, _top, _timestamp);
     }
 
@@ -303,21 +286,16 @@ contract MintPasses is
         scionContract = _scionContract;
     }
 
-    function setStart(uint256 _auctionDuration, uint256 _auctionStart)
+    function startAuction(uint256 _auctionDuration, uint256 _auctionStart)
         external
         onlyOwner
     {
-        active = true;
         start = _auctionStart;
         auctionDuration = _auctionDuration * 1 minutes;
     }
 
     function finishAuction() external onlyOwner {
         auctionDuration = block.timestamp > start ? block.timestamp - start : 0;
-    }
-
-    function setActive(bool _active) external onlyOwner {
-        active = _active;
     }
 
     function baseURI() public view returns (string memory) {
@@ -330,22 +308,6 @@ contract MintPasses is
 
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
-    }
-
-    function userAvailableToClaim(address _address)
-        public
-        view
-        returns (uint256)
-    {
-        uint256 result;
-
-        for (uint256 i = 0; i < _ownedBids[_address].length(); i++) {
-            if (_getBidClass(_ownedBids[_address].at(i)) != BidClass.NONE) {
-                result++;
-            }
-        }
-
-        return result;
     }
 
     function random(uint256 _tokenId) internal view returns (uint256) {
@@ -362,7 +324,8 @@ contract MintPasses is
             ) % 1000;
     }
 
-    function claimPass(uint256[] memory bidIndexes) external onlyWhenFinished {
+    function claimPass(uint256[] memory bidIndexes) external onlyInactive {
+        require(bidIndexes.length <= 30, "Too much indexes");
         for (uint256 i = 0; i < bidIndexes.length; i++) {
             uint256 bidIndex = bidIndexes[i];
 
@@ -415,6 +378,7 @@ contract MintPasses is
 
         for (uint256 i = 0; i < bidsAmount; i++) {
             uint256 newBidIndex = _latestBidId;
+            bidInfos[newBidIndex].bidIndex = newBidIndex;
             bidInfos[newBidIndex].bidder = _msgSender();
             bidInfos[newBidIndex].bidValue = bidValue;
             bidInfos[newBidIndex].timestamp = block.timestamp;
@@ -460,15 +424,7 @@ contract MintPasses is
         );
     }
 
-    function cancelBid(uint256 bidIndex) external nonReentrant {
-        //TODO we should't allow canceling bid after the auction is over, even if no limits set
-        require(
-            (block.timestamp > start &&
-                block.timestamp < start + auctionDuration) ||
-                (block.timestamp > start + auctionDuration &&
-                    classes[BidClass.BRONZE].top != 0 &&
-                    _getBidClass(bidIndex) == BidClass.NONE)
-        );
+    function cancelBid(uint256 bidIndex) external onlyInactive nonReentrant {
         require(
             _msgSender() == bidInfos[bidIndex].bidder,
             "Not the owner of the bid"

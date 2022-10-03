@@ -16,7 +16,7 @@ const classLimits = [
   { bottom: toWei("20"), top: toWei("30") },
   { bottom: toWei("30"), top: toWei("40") },
   { bottom: toWei("40"), top: toWei("50") },
-  { bottom: toWei("60"), top: toWei("70") },
+  { bottom: toWei("50"), top: toWei("60") },
 ];
 
 module.exports.classLimits = classLimits;
