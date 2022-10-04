@@ -118,6 +118,11 @@ contract Scion is Ownable, ERC721Enumerable {
         _burn(tokenId); // add new burn with scionsData
     }
 
+    function priceInSouls(uint256 tokenId) public view returns (uint256 price) {
+        return 1 * priceForRarityInSouls;
+    }
+
+
     function random(uint _limit, uint _salt) internal view returns(uint){
         return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,
         msg.sender, _salt))) % _limit;
@@ -321,5 +326,4 @@ contract Scion is Ownable, ERC721Enumerable {
             previousWeightTemp = _assetsOfType[i].weight;
         }
     }
-
 }
