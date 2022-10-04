@@ -513,7 +513,6 @@ describe("MintPasses", async () => {
     const bidsAmount = 1;
     const bidValue = toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT)
       .times(2)
-      .plus(1)
       .toString();
     const value = toBN(bidValue).times(bidsAmount).toString();
 
@@ -612,6 +611,9 @@ describe("MintPasses", async () => {
       expect(tx).to.changeEtherBalance(await mintPasses.treasury(), value);
 
       expect(tx).to.changeTokenBalance(mintPasses, user1, 1);
+
+      expect(await mintPasses.mintingPassClass(0)).to.equal(BidClass.BRONZE);
+      expect(await mintPasses.mintingPassRandom(0)).to.be.below(1000);
 
       // getter
       const allBidCount = await mintPasses.countAllBids();
@@ -1031,7 +1033,7 @@ describe("MintPasses", async () => {
     });
   });
 
-  describe.only("use case", async () => {
+  describe("use case", async () => {
     const bidsAmounts = [30, 30, 30, 30, 30, 30, 30];
     const bidValues = [
       toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(2).toString(),
