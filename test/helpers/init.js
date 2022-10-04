@@ -3,9 +3,11 @@ const { args } = require("./arguments");
 const { assets } = require("./assets");
 
 const init = async () => {
-  const MINT_PASS_MINIMUM_BID_AMOUNT = 10 ** 18;
-
   const users = await ethers.getSigners();
+  // Registry
+  const AssetRegistry = await ethers.getContractFactory("AssetsRegistry");
+  const assetRegistry = await AssetRegistry.deploy();
+
   // ERC20
   const Keter = await ethers.getContractFactory("Keter");
   const keter = await Keter.deploy();
@@ -40,6 +42,7 @@ const init = async () => {
     mintPasses.address,
     soul.address,
     keter.address,
+    assetRegistry.address,
     args.SCION_NAME,
     args.SCION_SYMBOL,
     args.SCION_BASE_TOKEN_URI,
@@ -49,7 +52,7 @@ const init = async () => {
   );
   await scion.deployed();
 
-  await scionSetUp(scion);
+  //await scionSetUp(scion);
 
   return {
     users,

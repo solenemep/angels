@@ -7,18 +7,18 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "./MintPasses.sol";
-
+import "./IAssetRegistry.sol";
 
 contract Scion is Ownable, ERC721Enumerable {
-    // Mint, receives the minting pass NFT, burns it to create a Scion
     using Counters for Counters.Counter;
     using Strings for uint256;
     using SafeERC20 for IERC20;
 
+    IAssetRegistry public assetsRegistry;
     MintPasses public mintingPass;
     Counters.Counter private _tokenIdTracker;
+
 
     uint256 public constant priceForRarityInSouls = 100e18;
     uint256 public constant BP = 10000;
@@ -31,25 +31,16 @@ contract Scion is Ownable, ERC721Enumerable {
 
     RerollChances private _rerollChances;
 
-    struct Asset {
-        bool hasIt;
-        string asset;
-        uint256 weightSum;
-        uint256 weight;
-        string name;
-        uint256 assetIndex;
-    }
-
     struct Scions {
         // Mandatory
-        Asset background;
-        Asset halo;
-        Asset head;
-        Asset body;
+        IAssetRegistry.Asset background;
+        IAssetRegistry.Asset halo;
+        IAssetRegistry.Asset head;
+        IAssetRegistry.Asset body;
         // Optional
-        Asset wings;
-        Asset hands;
-        Asset sigil;
+        IAssetRegistry.Asset wings;
+        IAssetRegistry.Asset hands;
+        IAssetRegistry.Asset sigil;
     }
 
     struct RerollChances {
@@ -59,26 +50,29 @@ contract Scion is Ownable, ERC721Enumerable {
     }
 
     mapping(uint256 => Scions) public scionsData;
-    mapping(uint256 => Asset[]) public assets;
-    mapping(uint256 => uint256[]) public assetsUniqueWeights;
-    mapping(uint256 => uint256) public assetsUniqueWeightsIndexes;
-    mapping(uint256 => uint256) public assetsTotalWeight;
-    mapping(uint256 => uint256) public assetsTotalAmount;
 
     event Reroll(uint256 indexed _tokenId, uint256 indexed _assetId, uint256 _previousRarity, int256 _newRarity, string _newAsset, Scions _assets, uint256 _price, uint256 _timestamp, address indexed _user);
     event AssetGenerated(uint256 indexed _tokenId, uint256 indexed _assetId, int256 _rarity, uint256 _timestamp);
-    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 mintPassId, uint256 mintPassRarity, Scions _assets, uint256 _timestamp);
-    event Nested(uint256 indexed tokenId);
-    event Unnested(uint256 indexed tokenId);
+    event ScionClaimed(address indexed _user, uint256 indexed _scionId, uint256 mintPassId, Scions _assets, uint256 _timestamp);
     event RandomGenerated(uint256 random);
 
-    constructor(address _mintingPass, address _soul, address _keter, string memory name, string memory symbol, string memory baseTokenURI, uint256 _downgrade, uint256 _sameWeight, uint256 _rarityPlus) ERC721(name, symbol) {
+    constructor(address _mintingPass, address _soul, address _keter, address _assetsRegistry, string memory name, string memory symbol, string memory baseTokenURI, uint256 _downgrade, uint256 _sameWeight, uint256 _rarityPlus) ERC721(name, symbol) {
         mintingPass = MintPasses(_mintingPass);
+        assetsRegistry = IAssetRegistry(_assetsRegistry);
         soul = IERC20(_soul);
         keter = IERC20(_keter);
         _baseTokenURI = baseTokenURI;
 
         _rerollChances = RerollChances(_downgrade, _sameWeight, _rarityPlus);
+    }
+
+    modifier onlyApprovedOrOwner(uint256 tokenId) {
+        require(
+            ownerOf(tokenId) == _msgSender() ||
+                getApproved(tokenId) == _msgSender(),
+            "ERC721ACommon: Not approved nor owner"
+        );
+        _;
     }
 
     function baseURI() public view returns (string memory) {
@@ -94,9 +88,9 @@ contract Scion is Ownable, ERC721Enumerable {
     }
 
     function rerollChances(uint256 _assetId, uint256 weight) public view returns (RerollChances memory) {
-        if(assetsUniqueWeights[_assetId][0] == weight) {
+        if(assetsRegistry.uniqueWeightsForType(_assetId)[0] == weight) {
             return RerollChances(0, _rerollChances.sameWeight + _rerollChances.downgrade, _rerollChances.rarityPlus);
-        } else if(assetsUniqueWeights[_assetId][assetsUniqueWeights[_assetId].length - 1] == weight) {
+        } else if(assetsRegistry.uniqueWeightsForType(_assetId)[assetsRegistry.uniqueWeightsForType(_assetId).length - 1] == weight) {
             return RerollChances(_rerollChances.downgrade, _rerollChances.sameWeight + _rerollChances.rarityPlus, 0);
         } else {
             return _rerollChances;
@@ -104,7 +98,7 @@ contract Scion is Ownable, ERC721Enumerable {
     }
 
     function rerollPrice(uint256 _assetId, uint256 _tokenID) public view returns (uint256 _price) {
-        Asset memory _assetTemp = _assetId == 0 ? scionsData[_tokenID].background :
+        IAssetRegistry.Asset memory _assetTemp = _assetId == 0 ? scionsData[_tokenID].background :
             (_assetId == 1 ? scionsData[_tokenID].halo :
                 (_assetId == 2 ? scionsData[_tokenID].head :
                     (_assetId == 3 ? scionsData[_tokenID].body :
@@ -112,81 +106,21 @@ contract Scion is Ownable, ERC721Enumerable {
                             (_assetId == 5 ? scionsData[_tokenID].hands :
                                 scionsData[_tokenID].sigil)))));
 
-        uint256 _weightWanted = assetsUniqueWeights[_assetId][(assetsUniqueWeightsIndexes[_assetTemp.weight] == assetsUniqueWeights[_assetId].length - 1) ? assetsUniqueWeightsIndexes[_assetTemp.weight] : assetsUniqueWeightsIndexes[_assetTemp.weight] + 1];
+        uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(_assetId);
+        uint256 _weightWanted = _weightsForType[(assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) == _weightsForType.length - 1) ? assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) : assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) + 1];
         _price = MAX_WEIGHT - _assetTemp.weight + _weightWanted + ((_assetTemp.weight + _weightWanted) / _weightWanted**2 );
     }
 
-    function setAssets(uint _assetId, string[] memory _assets, uint256[] memory _weightSum, uint256[] memory _weights, string[] memory _names) external onlyOwner {
-        require(_assets.length == _weights.length && _names.length == _assets.length && _weightSum.length == _assets.length);
+    function burnForSoul(uint256 tokenId) external {
+        require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
 
-        assetsTotalAmount[_assetId] = 0;
-        uint _previousWeight;
-
-        for(uint256 i; i < _assets.length; i++) {
-            assets[_assetId].push(Asset(false, _assets[i], _weightSum[i], _weights[i], _names[i], i));
-            assetsTotalAmount[_assetId]++;
-
-            if(_weights[i] != _previousWeight) {
-                _previousWeight = _weights[i];
-                assetsUniqueWeightsIndexes[_weights[i]] = assetsUniqueWeights[_assetId].length;
-                assetsUniqueWeights[_assetId].push(_weights[i]);
-                
-            }
-        }
-
-        assetsTotalWeight[_assetId] = _weightSum[_assets.length-1];
+        soul.safeTransfer(msg.sender, 1 * priceForRarityInSouls);
+        _burn(tokenId); // add new burn with scionsData
     }
 
-    function random(uint number, uint _salt) private view returns(uint){
+    function random(uint _limit, uint _salt) internal view returns(uint){
         return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,
-        msg.sender, _salt))) % number;
-    }
-
-    function _setAssets(uint _assetId, uint _mintPassId, uint _scionTokenId) private {
-        uint256 previousWeightTemp;
-        uint256 salt = mintingPass.mintingPassRandom(_mintPassId);
-        uint256 randomNumber = random(assetsTotalWeight[_assetId], salt);
-
-        emit RandomGenerated(randomNumber);
-
-        for(uint i; i < assets[_assetId].length; i++) {
-            if(randomNumber > previousWeightTemp && randomNumber <= assets[_assetId][i].weightSum) {
-                if(_assetId == 0) {
-                    scionsData[_scionTokenId].background = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weightSum, assets[_assetId][i].weight, assets[_assetId][i].name, i);
-                } if(_assetId == 1) {
-                    scionsData[_scionTokenId].halo = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weightSum, assets[_assetId][i].weight, assets[_assetId][i].name, i);
-                } if(_assetId == 2) {
-                    scionsData[_scionTokenId].head = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weightSum, assets[_assetId][i].weight, assets[_assetId][i].name, i);
-                } if(_assetId == 3) {
-                    scionsData[_scionTokenId].body = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weightSum, assets[_assetId][i].weight, assets[_assetId][i].name, i);
-                } if(_assetId == 4) {
-                    scionsData[_scionTokenId].wings = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weightSum, assets[_assetId][i].weight, assets[_assetId][i].name, i);
-                } if(_assetId == 5) {
-                    scionsData[_scionTokenId].hands = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weightSum, assets[_assetId][i].weight, assets[_assetId][i].name, i);
-                } if(_assetId == 6) {
-                    scionsData[_scionTokenId].sigil = Asset(true, assets[_assetId][i].asset,  assets[_assetId][i].weightSum, assets[_assetId][i].weight, assets[_assetId][i].name, i);
-                }
-
-                break;
-            }
-
-            previousWeightTemp = assets[_assetId][i].weightSum;
-        }
-    }
-
-    function defineAssets(
-        uint256 scionTokenId,
-        uint256 mintPassId,
-        int256 mintPassRarity
-    ) internal {
-        // Mint when I get the callback
-            int256 _rarity = mintPassRarity;
-
-            for(uint i; i <= 6; i++) {
-                _setAssets(i, mintPassId, scionTokenId);
-            }
-
-            emit ScionClaimed(msg.sender, scionTokenId, mintPassId, uint256(_rarity), scionsData[scionTokenId], block.timestamp);
+        msg.sender, _salt))) % _limit;
     }
 
     // rarity should not be less then it was before
@@ -213,16 +147,18 @@ contract Scion is Ownable, ERC721Enumerable {
     }
 
     function weightChange(uint _assetId, uint256 _assetIndex, uint _state) private view returns (uint _weight) {
-        uint256 currentWeight = assets[_assetId][_assetIndex].weight;
+        uint256 currentWeight = assetsRegistry.assetsForType(_assetId)[_assetIndex].weight;
 
         if(_state == 1) return currentWeight;
 
-        for(uint i = 0; i < assetsUniqueWeights[_assetId].length; i++) {
-            if(assetsUniqueWeights[_assetId][i] == currentWeight) {
+        uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(_assetId);
+
+        for(uint i = 0; i < _weightsForType.length; i++) {
+            if(_weightsForType[i] == currentWeight) {
                 if(_state == 0 && i != 0) {
-                    currentWeight = assetsUniqueWeights[_assetId][i-1];
-                } else if(_state == 2 && i != assetsUniqueWeights[_assetId].length-1) {
-                    currentWeight = assetsUniqueWeights[_assetId][i+1];
+                    currentWeight = _weightsForType[i-1];
+                } else if(_state == 2 && i != _weightsForType.length - 1) {
+                    currentWeight = _weightsForType[i + 1];
                 }
                 break;
             }
@@ -231,28 +167,28 @@ contract Scion is Ownable, ERC721Enumerable {
         return currentWeight;
     }
 
-    function setWeightChange(uint _assetId, uint256 _assetIndex, uint _state) private view returns(Asset memory) {
+    function setWeightChange(uint _assetId, uint256 _assetIndex, uint _state) private view returns(IAssetRegistry.Asset memory) {
         uint256 currentWeight = weightChange(_assetId, _assetIndex, _state);
         uint256 count;
-
-        for(uint i = 0; i < assets[_assetId].length; i++) {
-            if(assets[_assetId][i].weight == currentWeight) {
+        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry.assetsForType(_assetId);
+        for(uint i = 0; i < _assetsOfType.length; i++) {
+            if(_assetsOfType[i].weight == currentWeight) {
                 count++;
             }
         }
 
-        Asset[] memory assetsTemp = new Asset[](count);
+        IAssetRegistry.Asset[] memory assetsTemp = new IAssetRegistry.Asset[](count);
         uint256 index;
 
-        for(uint i = 0; i < assets[_assetId].length; i++) {
-            if(assets[_assetId][i].weight == currentWeight) {
-                assetsTemp[index] = assets[_assetId][i];
+        for(uint i = 0; i < _assetsOfType.length; i++) {
+            if(_assetsOfType[i].weight == currentWeight) {
+                assetsTemp[index] = _assetsOfType[i];
                 index++;
             }
         }
 
         uint256 _random = random(count, 0);
-        Asset memory result = assetsTemp[_random];
+        IAssetRegistry.Asset memory result = assetsTemp[_random];
         result.hasIt = true;
         
         return result;
@@ -336,10 +272,54 @@ contract Scion is Ownable, ERC721Enumerable {
         // Burning minting pass
         mintingPass.burn(tokenId);
 
-        defineAssets(_tokenIdTracker.current(), tokenId, 0);
+        assignAssets(_tokenIdTracker.current(), tokenId);
 
         _safeMint(msg.sender, _tokenIdTracker.current());
 
         _tokenIdTracker.increment();
     }
+
+    function assignAssets(
+        uint256 scionTokenId,
+        uint256 mintPassId
+    ) internal {
+        for(uint i; i <= 6; i++) {
+            _assignAssetsFromType(i, mintPassId, scionTokenId);
+        }
+        emit ScionClaimed(msg.sender, scionTokenId, mintPassId, scionsData[scionTokenId], block.timestamp);
+    }
+
+    function _assignAssetsFromType(uint _assetId, uint _mintPassId, uint _scionTokenId) internal {
+        uint256 previousWeightTemp;
+        uint256 salt = mintingPass.mintingPassRandom(_mintPassId);
+        uint256 randomNumber = random(assetsRegistry.totalWeightForType(_assetId), salt);
+
+        emit RandomGenerated(randomNumber);
+
+        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry.assetsForType(_assetId);
+        for(uint i; i < _assetsOfType.length; i++) {
+            if(randomNumber > previousWeightTemp && randomNumber <= _assetsOfType[i].weightSum) {
+                IAssetRegistry.Asset memory _newAsset = IAssetRegistry.Asset(true, _assetsOfType[i].asset,  _assetsOfType[i].weightSum,  _assetsOfType[i].weight, _assetsOfType[i].name, i);
+                if(_assetId == 0) {
+                    scionsData[_scionTokenId].background = _newAsset;
+                } if(_assetId == 1) {
+                    scionsData[_scionTokenId].halo = _newAsset;
+                } if(_assetId == 2) {
+                    scionsData[_scionTokenId].head = _newAsset;
+                } if(_assetId == 3) {
+                    scionsData[_scionTokenId].body = _newAsset;
+                } if(_assetId == 4) {
+                    scionsData[_scionTokenId].wings = _newAsset;
+                } if(_assetId == 5) {
+                    scionsData[_scionTokenId].hands = _newAsset;
+                } if(_assetId == 6) {
+                    scionsData[_scionTokenId].sigil = _newAsset;
+                }
+                    break;
+                }
+
+            previousWeightTemp = _assetsOfType[i].weight;
+        }
+    }
+
 }
