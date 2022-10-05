@@ -52,10 +52,13 @@ const init = async () => {
   );
   await scion.deployed();
 
-  //await scionSetUp(scion);
+  await mintPassesSetUp(mintPasses, scion.address);
+
+  await assetSetUp(assetRegistry);
 
   return {
     users,
+    assetRegistry,
     keter,
     soul,
     archangel,
@@ -64,9 +67,13 @@ const init = async () => {
   };
 };
 
-const scionSetUp = async (scion) => {
+const mintPassesSetUp = async (mintPasses, scionAddress) => {
+  await mintPasses.setScionAddress(scionAddress);
+};
+
+const assetSetUp = async (assetRegistry) => {
   for (const asset of assets) {
-    await scion.setAssets(
+    await assetRegistry.setAssets(
       asset.assetId,
       asset.assets,
       asset.weigthSum,
