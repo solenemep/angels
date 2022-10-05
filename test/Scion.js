@@ -12,7 +12,7 @@ const {
   getCosts,
 } = require("./helpers/utils");
 
-describe("MintPasses", async () => {
+describe("Scion", async () => {
   let assetRegistry;
   let keter;
   let mintPasses;
@@ -121,11 +121,17 @@ describe("MintPasses", async () => {
     expect(await mintPasses.countAllBids()).to.equal(6);
 
     await mintPasses.connect(user1).claimPass([1]);
+    // console.log((await mintPasses.mintingPassRandom(0)).toString());
     await mintPasses.connect(user2).claimPass([2]);
+    // console.log((await mintPasses.mintingPassRandom(1)).toString());
     await mintPasses.connect(user3).claimPass([3]);
+    // console.log((await mintPasses.mintingPassRandom(2)).toString());
     await mintPasses.connect(user4).claimPass([4]);
+    // console.log((await mintPasses.mintingPassRandom(3)).toString());
     await mintPasses.connect(user5).claimPass([5]);
+    // console.log((await mintPasses.mintingPassRandom(4)).toString());
     await mintPasses.connect(user6).claimPass([6]);
+    // console.log((await mintPasses.mintingPassRandom(5)).toString());
 
     expect(await mintPasses.balanceOf(user1.address)).to.equal(1);
     expect(await mintPasses.balanceOf(user2.address)).to.equal(1);
@@ -236,14 +242,14 @@ describe("MintPasses", async () => {
         reason
       );
     });
-    it("reverts if inexistant asset", async () => {
+    it("reverts if not owner of scion", async () => {
       const reason = "Scion: invalid owner";
 
       await expect(scion.connect(user2).rerollAsset(0, 2)).to.be.revertedWith(
         reason
       );
     });
-    it("reverts if not owner of scion", async () => {
+    it("reverts if inexistant asset", async () => {
       const reason = "";
 
       await expect(scion.connect(user1).rerollAsset(0, 0)).to.be.revertedWith(

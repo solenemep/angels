@@ -356,7 +356,6 @@ contract Scion is Ownable, ERC721Enumerable {
 
         uint256 _random = random(count, 0);
         IAssetRegistry.Asset memory result = assetsTemp[_random];
-        result.hasIt = true;
 
         return result;
     }
@@ -530,7 +529,6 @@ contract Scion is Ownable, ERC721Enumerable {
                 randomNumber <= _assetsOfType[i].weightSum
             ) {
                 IAssetRegistry.Asset memory _newAsset = IAssetRegistry.Asset(
-                    true,
                     _assetsOfType[i].asset,
                     _assetsOfType[i].weightSum,
                     _assetsOfType[i].weight,
