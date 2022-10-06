@@ -1,6 +1,31 @@
 const { expect } = require("chai");
-const { increaseTime } = require("./helpers/utils");
+const { increaseTime, restore, snapshot } = require("./helpers/utils");
 const { init } = require("./helpers/init");
+
+const getMedian = (arr) => {
+  const mid = Math.floor(arr.length / 2),
+    nums = [...arr].sort((a, b) => a - b);
+  return arr.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+};
+
+const getAverage = (arr) => {
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+};
+
+function getStandardDeviation(arr) {
+  let mean =
+    arr.reduce((acc, curr) => {
+      return acc + curr;
+    }, 0) / arr.length;
+
+  arr = arr.map((el) => {
+    return (el - mean) ** 2;
+  });
+
+  let total = arr.reduce((acc, curr) => acc + curr, 0);
+
+  return Math.sqrt(total / arr.length);
+}
 
 describe("Randomness", async () => {
   let randomGenerator;
@@ -12,39 +37,72 @@ describe("Randomness", async () => {
     user1 = setups.users[1];
 
     randomGenerator = setups.randomGenerator;
+
+    await snapshot();
+  });
+
+  afterEach("revert", async () => {
+    await restore();
   });
 
   describe("test randomness", async () => {
-    const range = 1000; // generation in range 0 to 1000
     const sample = 30000; // number of iteration
-    const margin = 2; // margin of error
+    const range = 1000; // generation in range 0 to 1000
+
+    let frequency = Array(range).fill(0);
+    let probability = Array(range).fill(0);
 
     // example :
     // 30000 random number generated
     // each random number is between range of 0 and 1000
     // in perfect uniform distribution :
-    // the frequency X is chosen is 30000 / 1000 = 30
-    // so the probability X is chosen is 30 / 1000 = 0.03
+    // the frequency X is generated is 30000 / 1000 = 30
+    // so the probability X is generated is 30 / 1000 = 0.03
     // here we include a margin of error :
-    // frequency can variate between 30 - 3 = 27 and 30 + 3 = 33
+    // probability is 30 +/- margin
 
-    it("distribute random number in a range of values", async () => {
-      let frequency = Array(range).fill(0);
+    it("shows acceptable median, average and standard deviation", async () => {
+      const margin = 12; // margin of error
+
       for (let i = 0; i < sample; i++) {
         const random = await randomGenerator.random(user1.address, range, i);
         frequency[random.toNumber()] = frequency[random.toNumber()] + 1;
+
         await increaseTime(60 * 60);
       }
 
-      let probability = Array(range).fill(0);
+      const median = getMedian(frequency);
+      expect(median).to.equal(sample / range);
+      const average = getAverage(frequency);
+      expect(average).to.equal(sample / range);
+      const standardDeviation = getStandardDeviation(frequency);
+      expect(standardDeviation).to.be.closeTo(
+        sample / range / Math.sqrt(12), // standard deviation in perfect unifom distribution
+        (sample / range + margin) / Math.sqrt(12) -
+          sample / range / Math.sqrt(12)
+      );
+    });
+
+    it("distribute random number in a range of values with acceptable margin of error", async () => {
+      const margin = 20; // margin of error
+
+      for (let i = 0; i < sample; i++) {
+        const random = await randomGenerator.random(user1.address, range, i);
+        frequency[random.toNumber()] = frequency[random.toNumber()] + 1;
+
+        await increaseTime(60 * 60);
+      }
+
       for (let j = 0; j < range; j++) {
         probability[j] = frequency[j] / range;
 
+        expect(frequency[j]).to.be.closeTo(sample / range, margin);
         expect(probability[j]).to.be.closeTo(
-          sample / range ** 2,
-          (sample / range + margin) / range
+          sample / range ** 2, // probability in perfect uniform distribution
+          (sample / range + margin) / range - sample / range ** 2
         );
       }
+      console.log(probability);
     });
   });
 });
