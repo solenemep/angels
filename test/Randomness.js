@@ -19,9 +19,9 @@ describe("Randomness", async () => {
     const sample = 30000; // number of iteration
     const margin = 2; // margin of error
 
-    // example with sample = 10000
+    // example :
     // 30000 random number generated
-    // each random number is between 0 and 30000
+    // each random number is between range of 0 and 1000
     // in perfect uniform distribution :
     // the frequency X is chosen is 30000 / 1000 = 30
     // so the probability X is chosen is 30 / 1000 = 0.03
