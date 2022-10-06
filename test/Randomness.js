@@ -12,20 +12,17 @@ const getAverage = (arr) => {
   return arr.reduce((a, b) => a + b, 0) / arr.length;
 };
 
-function getStandardDeviation(arr) {
-  let mean =
-    arr.reduce((acc, curr) => {
-      return acc + curr;
-    }, 0) / arr.length;
+const getStandardDeviation = (arr) => {
+  const average = getAverage(arr);
 
   arr = arr.map((el) => {
-    return (el - mean) ** 2;
+    return (el - average) ** 2;
   });
 
-  let total = arr.reduce((acc, curr) => acc + curr, 0);
+  const total = arr.reduce((a, b) => a + b, 0);
 
   return Math.sqrt(total / arr.length);
-}
+};
 
 describe("Randomness", async () => {
   let randomGenerator;
