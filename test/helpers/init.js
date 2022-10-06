@@ -4,9 +4,15 @@ const { assets } = require("./assets");
 
 const init = async () => {
   const users = await ethers.getSigners();
+  // Library
+  const RandomGenerator = await ethers.getContractFactory("RandomGenerator");
+  const randomGenerator = await RandomGenerator.deploy();
+  await randomGenerator.deployed();
+
   // Registry
   const AssetRegistry = await ethers.getContractFactory("AssetsRegistry");
   const assetRegistry = await AssetRegistry.deploy();
+  await assetRegistry.deployed();
 
   // ERC20
   const Keter = await ethers.getContractFactory("Keter");
@@ -22,7 +28,11 @@ const init = async () => {
   const archangel = await Archangel.deploy(soul.address);
   await archangel.deployed();
 
-  const MintPasses = await ethers.getContractFactory("MintPasses");
+  const MintPasses = await ethers.getContractFactory("MintPasses", {
+    libraries: {
+      RandomGenerator: randomGenerator.address,
+    },
+  });
   const mintPasses = await MintPasses.deploy(
     args.MINT_PASS_NAME,
     args.MINT_PASS_SYMBOL,
@@ -37,7 +47,11 @@ const init = async () => {
   );
   await mintPasses.deployed();
 
-  const Scion = await hre.ethers.getContractFactory("Scion");
+  const Scion = await hre.ethers.getContractFactory("Scion", {
+    libraries: {
+      RandomGenerator: randomGenerator.address,
+    },
+  });
   const scion = await Scion.deploy(
     mintPasses.address,
     soul.address,
@@ -58,6 +72,7 @@ const init = async () => {
 
   return {
     users,
+    randomGenerator,
     assetRegistry,
     keter,
     soul,

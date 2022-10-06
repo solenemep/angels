@@ -16,6 +16,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+import "./libraries/RandomGenerator.sol";
 import "./MintPassRarityGenerator.sol";
 
 // We import this library to be able to use console.log
@@ -311,20 +312,6 @@ contract MintPasses is
         return _baseTokenURI;
     }
 
-    function random(uint256 _tokenId) internal view returns (uint256) {
-        return
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        block.timestamp,
-                        block.difficulty,
-                        msg.sender,
-                        _tokenId
-                    )
-                )
-            ) % 1000;
-    }
-
     function bid(uint256 bidsAmount, uint256 bidValue)
         external
         payable
@@ -483,7 +470,11 @@ contract MintPasses is
             //requestRandomWords(newTokenId); // Sets the rarity // function revert
         } else {
             // TODO generate mintPass rarity
-            mintingPassRandom[newTokenId] = random(newTokenId);
+            mintingPassRandom[newTokenId] = RandomGenerator.random(
+                user,
+                1000,
+                newTokenId
+            );
         }
 
         _safeMint(user, newTokenId);

@@ -8,7 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./MintPasses.sol";
-import "./IAssetRegistry.sol";
+
+import "./libraries/RandomGenerator.sol";
+import "./interfaces/IAssetRegistry.sol";
 
 contract Scion is Ownable, ERC721Enumerable {
     using Counters for Counters.Counter;
@@ -206,24 +208,6 @@ contract Scion is Ownable, ERC721Enumerable {
         _burn(tokenId); // add new burn with scionsData
     }
 
-    function random(uint256 _limit, uint256 _salt)
-        internal
-        view
-        returns (uint256)
-    {
-        return
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        block.timestamp,
-                        block.difficulty,
-                        msg.sender,
-                        _salt
-                    )
-                )
-            ) % _limit;
-    }
-
     // rarity should not be less then it was before
     function rerollCalculate(
         uint256 _randomNumber,
@@ -354,7 +338,7 @@ contract Scion is Ownable, ERC721Enumerable {
             }
         }
 
-        uint256 _random = random(count, 0);
+        uint256 _random = RandomGenerator.random(_msgSender(), count, 0);
         IAssetRegistry.Asset memory result = assetsTemp[_random];
 
         return result;
@@ -472,7 +456,12 @@ contract Scion is Ownable, ERC721Enumerable {
         uint256 _price = rerollPrice(tokenId, assetId);
 
         keter.safeTransferFrom(msg.sender, address(this), _price * 10**18);
-        rerollCalculate(random(BP, 0), assetId, tokenId, _price * 10**18);
+        rerollCalculate(
+            RandomGenerator.random(_msgSender(), BP, 0),
+            assetId,
+            tokenId,
+            _price * 10**18
+        );
         //requestRandomWords(tokenId, int256(assetId), 0, -1, 2);
     }
 
@@ -514,7 +503,8 @@ contract Scion is Ownable, ERC721Enumerable {
     ) internal {
         uint256 previousWeightTemp;
         uint256 salt = mintingPass.mintingPassRandom(_mintPassId);
-        uint256 randomNumber = random(
+        uint256 randomNumber = RandomGenerator.random(
+            _msgSender(),
             assetsRegistry.totalWeightForType(_assetId),
             salt
         );

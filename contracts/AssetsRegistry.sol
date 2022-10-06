@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./IAssetRegistry.sol";
+import "./interfaces/IAssetRegistry.sol";
 
 contract AssetsRegistry is Ownable, IAssetRegistry {
     // asset type -> set of weights

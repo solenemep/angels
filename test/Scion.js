@@ -189,9 +189,6 @@ describe("Scion", async () => {
       expect(tx6).to.changeTokenBalance(scion, user2, 1);
       expect(await scion.ownerOf(5)).to.equal(user2.address);
     });
-    it("test randomness", async () => {
-      // TODO
-    });
     it("test rarity", async () => {
       // TODO
     });
@@ -297,9 +294,6 @@ describe("Scion", async () => {
       expect(tx6).to.changeTokenBalance(keter, user6, -price6);
       expect(tx6).to.changeTokenBalance(keter, scion, price6);
       expect(await scion.ownerOf(5)).to.equal(user6.address);
-    });
-    it("test randomness", async () => {
-      // TODO
     });
     it("test rarity", async () => {
       // TODO
