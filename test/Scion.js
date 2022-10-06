@@ -121,17 +121,11 @@ describe("Scion", async () => {
     expect(await mintPasses.countAllBids()).to.equal(6);
 
     await mintPasses.connect(user1).claimPass([1]);
-    // console.log((await mintPasses.mintingPassRandom(0)).toString());
     await mintPasses.connect(user2).claimPass([2]);
-    // console.log((await mintPasses.mintingPassRandom(1)).toString());
     await mintPasses.connect(user3).claimPass([3]);
-    // console.log((await mintPasses.mintingPassRandom(2)).toString());
     await mintPasses.connect(user4).claimPass([4]);
-    // console.log((await mintPasses.mintingPassRandom(3)).toString());
     await mintPasses.connect(user5).claimPass([5]);
-    // console.log((await mintPasses.mintingPassRandom(4)).toString());
     await mintPasses.connect(user6).claimPass([6]);
-    // console.log((await mintPasses.mintingPassRandom(5)).toString());
 
     expect(await mintPasses.balanceOf(user1.address)).to.equal(1);
     expect(await mintPasses.balanceOf(user2.address)).to.equal(1);
@@ -139,13 +133,6 @@ describe("Scion", async () => {
     expect(await mintPasses.balanceOf(user4.address)).to.equal(1);
     expect(await mintPasses.balanceOf(user5.address)).to.equal(1);
     expect(await mintPasses.balanceOf(user6.address)).to.equal(1);
-
-    expect(await mintPasses.mintingPassClass(0)).to.equal(BidClass.BRONZE);
-    expect(await mintPasses.mintingPassClass(1)).to.equal(BidClass.SILVER);
-    expect(await mintPasses.mintingPassClass(2)).to.equal(BidClass.GOLD);
-    expect(await mintPasses.mintingPassClass(3)).to.equal(BidClass.PLATINUM);
-    expect(await mintPasses.mintingPassClass(4)).to.equal(BidClass.RUBY);
-    expect(await mintPasses.mintingPassClass(5)).to.equal(BidClass.ONYX);
 
     await snapshot();
   });
@@ -203,6 +190,9 @@ describe("Scion", async () => {
       expect(await scion.ownerOf(5)).to.equal(user2.address);
     });
     it("test randomness", async () => {
+      // TODO
+    });
+    it("test rarity", async () => {
       // TODO
     });
     it("emits ScionClaimed", async () => {
@@ -309,6 +299,9 @@ describe("Scion", async () => {
       expect(await scion.ownerOf(5)).to.equal(user6.address);
     });
     it("test randomness", async () => {
+      // TODO
+    });
+    it("test rarity", async () => {
       // TODO
     });
     it("emits Reroll", async () => {

@@ -5,16 +5,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IAssetRegistry.sol";
 
 contract AssetsRegistry is Ownable, IAssetRegistry {
-    // asset type -> count of assets
-    //TODO Delete?
-    mapping(uint256 => uint256) public assetsTotalAmount;
     // asset type -> set of weights
     mapping(uint256 => uint256[]) public assetsUniqueWeights;
 
     mapping(uint256 => mapping(uint256 => uint256))
         public assetsUniqueWeightsIndexes;
-    // asset type -> total weight
-    mapping(uint256 => uint256) public assetsTotalWeight;
+
     // asset type -> array of assets
     mapping(uint256 => Asset[]) public assets;
 
@@ -29,22 +25,14 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
     ) external onlyOwner {
         require(
             _assets.length == _weights.length &&
-                _names.length == _assets.length &&
-                _weightSum.length == _assets.length
+                _weights.length == _weightSum.length &&
+                _weightSum.length == _names.length
         );
-        assetsTotalAmount[_assetId] = 0;
         uint256 _previousWeight;
         for (uint256 i; i < _assets.length; i++) {
             assets[_assetId].push(
-                Asset(
-                    _assets[i],
-                    _weightSum[i],
-                    _weights[i],
-                    _names[i],
-                    i
-                )
+                Asset(_assets[i], _weightSum[i], _weights[i], _names[i], i)
             );
-            assetsTotalAmount[_assetId]++;
 
             if (_weights[i] != _previousWeight) {
                 _previousWeight = _weights[i];
@@ -54,7 +42,6 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
                 assetsUniqueWeights[_assetId].push(_weights[i]);
             }
         }
-        assetsTotalWeight[_assetId] = _weightSum[_assets.length - 1];
     }
 
     function uniqueWeightsForTypeIndexes(uint256 _assetId, uint256 _weights)
@@ -84,12 +71,22 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
         return assets[_assetId];
     }
 
+    function assetTotalAmount(uint256 _assetId)
+        public
+        view
+        returns (uint256 totalCount)
+    {
+        totalCount = assets[_assetId].length;
+    }
+
     function totalWeightForType(uint256 _assetId)
         public
         view
         override
-        returns (uint256)
+        returns (uint256 totalWeight)
     {
-        return assetsTotalWeight[_assetId];
+        for (uint256 i = 0; i < assets[_assetId].length; i++) {
+            totalWeight += assets[_assetId][i].weight;
+        }
     }
 }

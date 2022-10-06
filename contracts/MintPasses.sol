@@ -32,6 +32,7 @@ contract MintPasses is
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using Math for uint256;
     using SafeMath for uint256;
 
@@ -56,30 +57,11 @@ contract MintPasses is
         ONYX
     }
 
-    mapping(uint256 => BidInfo) public bidInfos; // bidIndex -> BidInfo
-    EnumerableSet.UintSet internal _allBids; // bidIndexes
-    mapping(address => EnumerableSet.UintSet) internal _ownedBids; // user -> bidIndex
-
-    mapping(uint256 => BidClass) public mintingPassClass; // mintpass -> class
-    mapping(uint256 => uint256) public mintingPassRandom; // mintpass -> random
-
-    // mapping (uint256 => Rarity) public tokenRarity; // Could be done like this
-    struct MintPass {
-        bool claimed;
-        bool receives;
-    }
-
     struct Class {
         uint256 bottom;
         uint256 top;
         uint256 timestamp;
     }
-
-    mapping(BidClass => Class) public classes;
-    mapping(address => MintPass) public promotionPasses;
-    address[] public promotionMintingAddresses;
-
-    //BidInfo[] bidsArray;
 
     struct BidInfo {
         uint256 bidIndex;
@@ -89,6 +71,20 @@ contract MintPasses is
         BidClass class;
         bool claimed;
     }
+
+    // class related
+    mapping(BidClass => Class) public classes;
+
+    // bid related
+    mapping(uint256 => BidInfo) public bidInfos; // bidIndex -> BidInfo
+    EnumerableSet.UintSet internal _allBids; // bidIndexes
+    mapping(address => EnumerableSet.UintSet) internal _ownedBids; // user -> bidIndex
+
+    // mintPass related
+    mapping(uint256 => uint256) public mintingPassRandom; // mintpass -> random
+
+    // promotion related
+    EnumerableSet.AddressSet internal _promotionBeneficiaries;
 
     enum ListOption {
         ALL,
@@ -118,6 +114,11 @@ contract MintPasses is
         address indexed bidder,
         uint256 indexed passId,
         uint256 indexed bidId,
+        uint256 timestamp
+    );
+    event PromotionPassClaimed(
+        address indexed beneficiary,
+        uint256 indexed passId,
         uint256 timestamp
     );
 
@@ -324,42 +325,6 @@ contract MintPasses is
             ) % 1000;
     }
 
-    function claimPass(uint256[] memory bidIndexes) external onlyInactive {
-        require(bidIndexes.length <= 30, "Too much indexes");
-        for (uint256 i = 0; i < bidIndexes.length; i++) {
-            uint256 bidIndex = bidIndexes[i];
-
-            /// @dev no use of require to avoid revert for all transaction
-            /// @dev not checking bidValue > 0 as cannot bid with bidValue < minimumBidAmount
-            if (
-                bidInfos[bidIndex].bidder == _msgSender() &&
-                !bidInfos[bidIndex].claimed &&
-                _getBidClass(bidIndex) != BidClass.NONE
-            ) {
-                mintingPassClass[_tokenIdTracker.current()] = _getBidClass(
-                    bidIndex
-                );
-                mintingPassRandom[_tokenIdTracker.current()] = random(
-                    _tokenIdTracker.current()
-                );
-                payable(treasury).transfer(bidInfos[bidIndex].bidValue);
-
-                _safeMint(_msgSender(), _tokenIdTracker.current());
-
-                _tokenIdTracker.increment();
-
-                bidInfos[bidIndex].claimed = true;
-
-                emit PassClaimed(
-                    _msgSender(),
-                    _tokenIdTracker.current() - 1,
-                    bidIndex,
-                    block.timestamp
-                );
-            }
-        }
-    }
-
     function bid(uint256 bidsAmount, uint256 bidValue)
         external
         payable
@@ -451,21 +416,78 @@ contract MintPasses is
         return super.supportsInterface(interfaceId);
     }
 
-    function addPromotionMintingAddress(address _beneficiary) public onlyOwner {
-        promotionMintingAddresses.push(_beneficiary);
-        promotionPasses[_beneficiary].receives = true;
+    function claimPass(uint256[] memory bidIndexes)
+        external
+        onlyInactive
+        nonReentrant
+    {
+        require(bidIndexes.length <= 30, "Too much indexes");
+        for (uint256 i = 0; i < bidIndexes.length; i++) {
+            uint256 bidIndex = bidIndexes[i];
+
+            /// @dev no use of require to avoid revert for all transaction
+            /// @dev not checking bidValue > 0 as cannot bid with bidValue < minimumBidAmount
+            if (
+                bidInfos[bidIndex].bidder == _msgSender() &&
+                !bidInfos[bidIndex].claimed &&
+                _getBidClass(bidIndex) != BidClass.NONE
+            ) {
+                payable(treasury).transfer(bidInfos[bidIndex].bidValue);
+                bidInfos[bidIndex].claimed = true;
+
+                uint256 tokenId = _mintMintPass(_msgSender(), false);
+
+                emit PassClaimed(
+                    _msgSender(),
+                    tokenId,
+                    bidIndex,
+                    block.timestamp
+                );
+            }
+        }
     }
 
-    function claimPromotionMintingPasses() public {
-        // Auction already finish require here
-        MintPass memory userPromotionPass = promotionPasses[_msgSender()];
-        require(userPromotionPass.receives, "MintPasses: invalid user");
-        require(!userPromotionPass.claimed, "MintPasses: user already claimed");
+    function addPromotionMintingAddress(address _beneficiary)
+        public
+        onlyOwner
+        nonReentrant
+    {
+        require(
+            !_promotionBeneficiaries.contains(_beneficiary),
+            "MintPasses: Already added"
+        );
+        _promotionBeneficiaries.add(_beneficiary);
+    }
 
-        _safeMint(_msgSender(), _tokenIdTracker.current());
-        requestRandomWords(_tokenIdTracker.current()); // Sets the rarity
+    function claimPromotionMintingPasses() public onlyInactive {
+        require(
+            _promotionBeneficiaries.contains(_msgSender()),
+            "MintPasses: not beneficary"
+        );
+
+        _promotionBeneficiaries.remove(_msgSender());
+
+        uint256 tokenId = _mintMintPass(_msgSender(), true);
+
+        emit PromotionPassClaimed(_msgSender(), tokenId, block.timestamp);
+    }
+
+    function _mintMintPass(address user, bool isPromoted)
+        internal
+        returns (uint256 newTokenId)
+    {
+        newTokenId = _tokenIdTracker.current();
+
+        if (isPromoted) {
+            // TODO generate mintPass rarity
+            //requestRandomWords(newTokenId); // Sets the rarity // function revert
+        } else {
+            // TODO generate mintPass rarity
+            mintingPassRandom[newTokenId] = random(newTokenId);
+        }
+
+        _safeMint(user, newTokenId);
         _tokenIdTracker.increment();
-        promotionPasses[_msgSender()].claimed = true;
     }
 
     function burn(uint256 tokenId) external {
