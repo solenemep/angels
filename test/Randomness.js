@@ -20,13 +20,13 @@ describe("Randomness", async () => {
     const margin = 2; // margin of error
 
     // example with sample = 10000
-    // 3000 random number generated
-    // each random number is between 0 and 1000
+    // 30000 random number generated
+    // each random number is between 0 and 30000
     // in perfect uniform distribution :
-    // the frequency X is chosen is 10000 / 1000 = 10
-    // so the probability X is chosen is 10 / 1000 = 0.01
+    // the frequency X is chosen is 30000 / 1000 = 30
+    // so the probability X is chosen is 30 / 1000 = 0.03
     // here we include a margin of error :
-    // frequency can variate between 10 - 3 = 7 and 10 + 3 = 13
+    // frequency can variate between 30 - 3 = 27 and 30 + 3 = 33
 
     it("distribute random number in a range of values", async () => {
       let frequency = Array(range).fill(0);
