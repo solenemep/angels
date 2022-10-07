@@ -12,30 +12,29 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "./Soul.sol";
 
-
 contract Archangel is Ownable, ERC721Enumerable {
-    // Mint, receives the minting pass NFT, burns it to create a Scion  
+    // Mint, receives the minting pass NFT, burns it to create a Scion
     using Counters for Counters.Counter;
     using Strings for uint256;
     using SafeERC20 for Soul;
 
     // Optional mapping for token URIs
     mapping(uint256 => string) private _tokenURIs;
-    
+
     Counters.Counter private _tokenIdTracker;
 
     /**
         @dev tokenId to nesting start time (0 = not nesting).
      */
-    mapping(uint256 => uint256) private nestingStarted;
+    mapping(uint256 => uint256) private _nestingStarted;
 
     /**
         @dev Cumulative per-token nesting, excluding the current period.
      */
-    mapping(uint256 => uint256) private nestingTotal;
+    mapping(uint256 => uint256) private _nestingTotal;
 
-    uint256 priceInSouls = 444e18;
-    uint256 latestClaimed;
+    uint256 public priceInSouls = 444e18;
+    uint256 public latestClaimed;
     Soul public soul;
 
     event ArchangelMinted(address indexed user, uint256 indexed tokenId, uint256 timestamp);
@@ -49,20 +48,27 @@ contract Archangel is Ownable, ERC721Enumerable {
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {
         require(
-            ownerOf(tokenId) == _msgSender() ||
-                getApproved(tokenId) == _msgSender(),
+            ownerOf(tokenId) == _msgSender() || getApproved(tokenId) == _msgSender(),
             "ERC721ACommon: Not approved nor owner"
         );
         _;
     }
 
-    function nestingPeriod(uint256 tokenId) external view returns (bool nesting, uint256 current, uint256 total) {
-        uint256 start = nestingStarted[tokenId];
+    function nestingPeriod(uint256 tokenId)
+        external
+        view
+        returns (
+            bool nesting,
+            uint256 current,
+            uint256 total
+        )
+    {
+        uint256 start = _nestingStarted[tokenId];
         if (start != 0) {
             nesting = true;
             current = block.timestamp - start;
         }
-        total = current + nestingTotal[tokenId];
+        total = current + _nestingTotal[tokenId];
     }
 
     /**
@@ -81,22 +87,22 @@ contract Archangel is Ownable, ERC721Enumerable {
     function toggleNesting(uint256[] calldata tokenIds) external {
         uint256 n = tokenIds.length;
         for (uint256 i = 0; i < n; ++i) {
-            toggleNesting(tokenIds[i]);
+            _toggleNesting(tokenIds[i]);
         }
     }
 
     /**
         @notice Changes the Angel's nesting status.
     */
-    function toggleNesting(uint256 tokenId) internal onlyApprovedOrOwner(tokenId) {
-        uint256 start = nestingStarted[tokenId];
+    function _toggleNesting(uint256 tokenId) internal onlyApprovedOrOwner(tokenId) {
+        uint256 start = _nestingStarted[tokenId];
         if (start == 0) {
             require(nestingOpen, "Angels: nesting closed");
-            nestingStarted[tokenId] = block.timestamp;
+            _nestingStarted[tokenId] = block.timestamp;
             emit Nested(tokenId);
         } else {
-            nestingTotal[tokenId] += block.timestamp - start;
-            nestingStarted[tokenId] = 0;
+            _nestingTotal[tokenId] += block.timestamp - start;
+            _nestingStarted[tokenId] = 0;
             emit Unnested(tokenId);
         }
     }
@@ -175,13 +181,13 @@ contract Archangel is Ownable, ERC721Enumerable {
         _safeTransfer(address(this), msg.sender, latestClaimed++, "");
     }
 
-    function archangelsLeft() public view returns(uint256) {
+    function archangelsLeft() public view returns (uint256) {
         return 6 - latestClaimed + 1;
     }
-    
+
     // Sets the uri, url of ipfs
     function setTokenURI(uint256 tokenId, string memory _tokenURI) external {
-       _setTokenURI(tokenId, _tokenURI);
+        _setTokenURI(tokenId, _tokenURI);
     }
 
     function _baseURI() internal view virtual override returns (string memory) {

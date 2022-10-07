@@ -19,9 +19,7 @@
   "RARITY_PLUS",
 ].forEach((i) => {
   if (!process.env[i]) {
-    throw new Error(
-      `Environment variable ${i} is not defined.  Please add it to the ".env" file.`
-    );
+    throw new Error(`Environment variable ${i} is not defined.  Please add it to the ".env" file.`);
   }
 });
 

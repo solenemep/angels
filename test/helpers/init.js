@@ -66,13 +66,7 @@ const init = async () => {
 
 const scionSetUp = async (scion) => {
   for (const asset of assets) {
-    await scion.setAssets(
-      asset.assetId,
-      asset.assets,
-      asset.weigthSum,
-      asset.weigths,
-      asset.names
-    );
+    await scion.setAssets(asset.assetId, asset.assets, asset.weigthSum, asset.weigths, asset.names);
   }
 };
 

@@ -123,8 +123,7 @@ contract MintPasses is
 
     modifier onlyActive() {
         require(
-            (block.timestamp > start &&
-                block.timestamp < start + auctionDuration),
+            (block.timestamp > start && block.timestamp < start + auctionDuration),
             "Auction inactive"
         );
         _;
@@ -204,20 +203,12 @@ contract MintPasses is
         }
     }
 
-    function getBidInfo(uint256 bidIndex)
-        public
-        view
-        returns (BidInfo memory bidPublicInfo)
-    {
+    function getBidInfo(uint256 bidIndex) public view returns (BidInfo memory bidPublicInfo) {
         bidPublicInfo = bidInfos[bidIndex];
         bidPublicInfo.class = _getBidClass(bidIndex);
     }
 
-    function _getBidClass(uint256 _bidIndex)
-        internal
-        view
-        returns (BidClass bidClass)
-    {
+    function _getBidClass(uint256 _bidIndex) internal view returns (BidClass bidClass) {
         uint256 bidValue = bidInfos[_bidIndex].bidValue;
 
         if (bidValue < classes[BidClass.BRONZE].bottom) {
@@ -238,9 +229,7 @@ contract MintPasses is
     }
 
     function getBidsClasses() public view returns (BidClass[] memory) {
-        BidClass[] memory result = new BidClass[](
-            _ownedBids[_msgSender()].length()
-        );
+        BidClass[] memory result = new BidClass[](_ownedBids[_msgSender()].length());
 
         for (uint256 i = 0; i < _ownedBids[_msgSender()].length(); i++) {
             result[i] = _getBidClass(_ownedBids[_msgSender()].at(i));
@@ -286,10 +275,7 @@ contract MintPasses is
         scionContract = _scionContract;
     }
 
-    function startAuction(uint256 _auctionDuration, uint256 _auctionStart)
-        external
-        onlyOwner
-    {
+    function startAuction(uint256 _auctionDuration, uint256 _auctionStart) external onlyOwner {
         start = _auctionStart;
         auctionDuration = _auctionDuration * 1 minutes;
     }
@@ -310,16 +296,11 @@ contract MintPasses is
         return _baseTokenURI;
     }
 
-    function random(uint256 _tokenId) internal view returns (uint256) {
+    function _random(uint256 _tokenId) internal view returns (uint256) {
         return
             uint256(
                 keccak256(
-                    abi.encodePacked(
-                        block.timestamp,
-                        block.difficulty,
-                        msg.sender,
-                        _tokenId
-                    )
+                    abi.encodePacked(block.timestamp, block.difficulty, msg.sender, _tokenId)
                 )
             ) % 1000;
     }
@@ -336,12 +317,8 @@ contract MintPasses is
                 !bidInfos[bidIndex].claimed &&
                 _getBidClass(bidIndex) != BidClass.NONE
             ) {
-                mintingPassClass[_tokenIdTracker.current()] = _getBidClass(
-                    bidIndex
-                );
-                mintingPassRandom[_tokenIdTracker.current()] = random(
-                    _tokenIdTracker.current()
-                );
+                mintingPassClass[_tokenIdTracker.current()] = _getBidClass(bidIndex);
+                mintingPassRandom[_tokenIdTracker.current()] = _random(_tokenIdTracker.current());
                 payable(treasury).transfer(bidInfos[bidIndex].bidValue);
 
                 _safeMint(_msgSender(), _tokenIdTracker.current());
@@ -360,20 +337,9 @@ contract MintPasses is
         }
     }
 
-    function bid(uint256 bidsAmount, uint256 bidValue)
-        external
-        payable
-        onlyActive
-        nonReentrant
-    {
-        require(
-            bidValue > minimumBidAmount,
-            "Bid value must be bigger then minimum bid"
-        );
-        require(
-            msg.value >= bidValue * bidsAmount,
-            "There is not enough funds to make bids"
-        );
+    function bid(uint256 bidsAmount, uint256 bidValue) external payable onlyActive nonReentrant {
+        require(bidValue > minimumBidAmount, "Bid value must be bigger then minimum bid");
+        require(msg.value >= bidValue * bidsAmount, "There is not enough funds to make bids");
         require(bidsAmount <= 30, "Too many bids during 1 transaction");
 
         for (uint256 i = 0; i < bidsAmount; i++) {
@@ -388,31 +354,16 @@ contract MintPasses is
 
             _latestBidId++;
 
-            emit BidPlaced(
-                _msgSender(),
-                bidValue,
-                newBidIndex,
-                block.timestamp
-            );
+            emit BidPlaced(_msgSender(), bidValue, newBidIndex, block.timestamp);
         }
     }
 
-    function updateBid(uint256 bidIndex)
-        external
-        payable
-        onlyActive
-        nonReentrant
-    {
+    function updateBid(uint256 bidIndex) external payable onlyActive nonReentrant {
         require(msg.value > 0, "There is not enough funds to update bid");
-        require(
-            _msgSender() == bidInfos[bidIndex].bidder,
-            "Not the owner of the bid"
-        );
+        require(_msgSender() == bidInfos[bidIndex].bidder, "Not the owner of the bid");
         uint256 lastBidValue = bidInfos[bidIndex].bidValue;
 
-        bidInfos[bidIndex].bidValue = bidInfos[bidIndex].bidValue.add(
-            msg.value
-        );
+        bidInfos[bidIndex].bidValue = bidInfos[bidIndex].bidValue.add(msg.value);
         bidInfos[bidIndex].timestamp = block.timestamp;
 
         emit BidUpdated(
@@ -425,10 +376,7 @@ contract MintPasses is
     }
 
     function cancelBid(uint256 bidIndex) external onlyInactive nonReentrant {
-        require(
-            _msgSender() == bidInfos[bidIndex].bidder,
-            "Not the owner of the bid"
-        );
+        require(_msgSender() == bidInfos[bidIndex].bidder, "Not the owner of the bid");
         uint256 bidValue = bidInfos[bidIndex].bidValue;
 
         _allBids.remove(bidIndex);
