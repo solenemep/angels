@@ -73,6 +73,11 @@ contract MintPasses is
         bool claimed;
     }
 
+    enum ListOption {
+        ALL,
+        OWNED
+    }
+
     // class related
     mapping(BidClass => Class) public classes;
 
@@ -86,11 +91,6 @@ contract MintPasses is
 
     // promotion related
     EnumerableSet.AddressSet internal _promotionBeneficiaries;
-
-    enum ListOption {
-        ALL,
-        OWNED
-    }
 
     event BidPlaced(
         address indexed bidder,

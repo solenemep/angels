@@ -46,8 +46,8 @@ describe("Scion", async () => {
     toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(50).toString(),
   ];
 
-  beforeEach("setup", async () => {
-    const setups = await init();
+  before("setup", async () => {
+    const setups = await init(false);
     owner = setups.users[0];
     user1 = setups.users[1];
     user2 = setups.users[2];

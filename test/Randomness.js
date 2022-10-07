@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { increaseTime, restore, snapshot } = require("./helpers/utils");
+const { increaseTime } = require("./helpers/utils");
 const { init } = require("./helpers/init");
 
 const getMedian = (arr) => {
@@ -25,30 +25,35 @@ const getStandardDeviation = (arr) => {
 };
 
 describe("Randomness", async () => {
-  let randomGenerator;
-  let user1;
+  const sample = 10000; // number of iteration
+  const range = 1000; // generation in range 0 to 1000
 
-  beforeEach("setup", async () => {
-    const setups = await init();
-    owner = setups.users[0];
-    user1 = setups.users[1];
+  const randomAddress = "0x17d2FA626c6C78517832D924B6C9e7Df84C62009";
+
+  let randomGenerator;
+
+  let frequency;
+
+  before("setup", async () => {
+    const setups = await init(true);
 
     randomGenerator = setups.randomGenerator;
 
-    await snapshot();
-  });
+    const generate = async () => {
+      let frequency = Array(range).fill(0);
+      for (let i = 0; i < sample; i++) {
+        const random = await randomGenerator.random(randomAddress, range, i);
+        frequency[random.toNumber()] = frequency[random.toNumber()] + 1;
 
-  afterEach("revert", async () => {
-    await restore();
+        await increaseTime(60 * 60);
+      }
+      return frequency;
+    };
+
+    frequency = await generate();
   });
 
   describe("test randomness", async () => {
-    const sample = 30000; // number of iteration
-    const range = 1000; // generation in range 0 to 1000
-
-    let frequency = Array(range).fill(0);
-    let probability = Array(range).fill(0);
-
     // example :
     // 30000 random number generated
     // each random number is between range of 0 and 1000
@@ -61,13 +66,6 @@ describe("Randomness", async () => {
     it("shows acceptable median, average and standard deviation", async () => {
       const margin = 12; // margin of error
 
-      for (let i = 0; i < sample; i++) {
-        const random = await randomGenerator.random(user1.address, range, i);
-        frequency[random.toNumber()] = frequency[random.toNumber()] + 1;
-
-        await increaseTime(60 * 60);
-      }
-
       const median = getMedian(frequency);
       expect(median).to.equal(sample / range);
       const average = getAverage(frequency);
@@ -78,17 +76,13 @@ describe("Randomness", async () => {
         (sample / range + margin) / Math.sqrt(12) -
           sample / range / Math.sqrt(12)
       );
+      console.log(frequency);
     });
 
     it("distribute random number in a range of values with acceptable margin of error", async () => {
       const margin = 20; // margin of error
 
-      for (let i = 0; i < sample; i++) {
-        const random = await randomGenerator.random(user1.address, range, i);
-        frequency[random.toNumber()] = frequency[random.toNumber()] + 1;
-
-        await increaseTime(60 * 60);
-      }
+      let probability = Array(range).fill(0);
 
       for (let j = 0; j < range; j++) {
         probability[j] = frequency[j] / range;

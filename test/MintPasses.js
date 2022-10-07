@@ -36,8 +36,8 @@ describe("MintPasses", async () => {
     OWNED: 1,
   };
 
-  beforeEach("setup", async () => {
-    const setups = await init();
+  before("setup", async () => {
+    const setups = await init(false);
     owner = setups.users[0];
     user1 = setups.users[1];
     user2 = setups.users[2];
