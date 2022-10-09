@@ -456,6 +456,7 @@ contract MintPasses is
         promotionPasses[_beneficiary].receives = true;
     }
 
+    //FIXME missing setting of 'mintingPassClass' and 'mintingPassRandom'
     function claimPromotionMintingPasses() public {
         // Auction already finish require here
         MintPass memory userPromotionPass = promotionPasses[_msgSender()];
