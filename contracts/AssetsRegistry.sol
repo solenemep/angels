@@ -8,8 +8,7 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
     // asset type -> set of weights
     mapping(uint256 => uint256[]) public assetsUniqueWeights;
 
-    mapping(uint256 => mapping(uint256 => uint256))
-        public assetsUniqueWeightsIndexes;
+    mapping(uint256 => mapping(uint256 => uint256)) public assetsUniqueWeightsIndexes;
 
     // asset type -> array of assets
     mapping(uint256 => Asset[]) public assets;
@@ -30,15 +29,12 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
         );
         uint256 _previousWeight;
         for (uint256 i; i < _assets.length; i++) {
-            assets[_assetId].push(
-                Asset(_assets[i], _weightSum[i], _weights[i], _names[i], i)
-            );
+            assets[_assetId].push(Asset(_assets[i], _weightSum[i], _weights[i], _names[i], i));
 
             if (_weights[i] != _previousWeight) {
                 _previousWeight = _weights[i];
-                assetsUniqueWeightsIndexes[_assetId][
-                    _weights[i]
-                ] = assetsUniqueWeights[_assetId].length;
+                assetsUniqueWeightsIndexes[_assetId][_weights[i]] = assetsUniqueWeights[_assetId]
+                    .length;
                 assetsUniqueWeights[_assetId].push(_weights[i]);
             }
         }
@@ -62,20 +58,11 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
         return assetsUniqueWeights[_assetId];
     }
 
-    function assetsForType(uint256 _assetId)
-        public
-        view
-        override
-        returns (Asset[] memory)
-    {
+    function assetsForType(uint256 _assetId) public view override returns (Asset[] memory) {
         return assets[_assetId];
     }
 
-    function assetTotalAmount(uint256 _assetId)
-        public
-        view
-        returns (uint256 totalCount)
-    {
+    function assetTotalAmount(uint256 _assetId) public view returns (uint256 totalCount) {
         totalCount = assets[_assetId].length;
     }
 

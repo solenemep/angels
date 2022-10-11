@@ -10,23 +10,14 @@ interface IAssetRegistry {
         uint256 assetIndex;
     }
 
-    function uniqueWeightsForType(uint256 _assetId)
-        external
-        view
-        returns (uint256[] memory);
+    function uniqueWeightsForType(uint256 _assetId) external view returns (uint256[] memory);
 
     function uniqueWeightsForTypeIndexes(uint256 _assetId, uint256 _weights)
         external
         view
         returns (uint256);
 
-    function assetsForType(uint256 _assetId)
-        external
-        view
-        returns (Asset[] memory);
+    function assetsForType(uint256 _assetId) external view returns (Asset[] memory);
 
-    function totalWeightForType(uint256 _assetId)
-        external
-        view
-        returns (uint256);
+    function totalWeightForType(uint256 _assetId) external view returns (uint256);
 }

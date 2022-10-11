@@ -101,8 +101,7 @@ contract Scion is Ownable, ERC721Enumerable {
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {
         require(
-            ownerOf(tokenId) == _msgSender() ||
-                getApproved(tokenId) == _msgSender(),
+            ownerOf(tokenId) == _msgSender() || getApproved(tokenId) == _msgSender(),
             "ERC721ACommon: Not approved nor owner"
         );
         _;
@@ -148,11 +147,7 @@ contract Scion is Ownable, ERC721Enumerable {
         }
     }
 
-    function rerollPrice(uint256 _tokenId, uint256 _assetId)
-        public
-        view
-        returns (uint256 _price)
-    {
+    function rerollPrice(uint256 _tokenId, uint256 _assetId) public view returns (uint256 _price) {
         IAssetRegistry.Asset memory _assetTemp = _assetId == 0
             ? scionsData[_tokenId].background
             : (
@@ -177,22 +172,12 @@ contract Scion is Ownable, ERC721Enumerable {
                     )
             );
 
-        uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(
-            _assetId
-        );
+        uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(_assetId);
         uint256 _weightWanted = _weightsForType[
-            (assetsRegistry.uniqueWeightsForTypeIndexes(
-                _assetId,
-                _assetTemp.weight
-            ) == _weightsForType.length - 1)
-                ? assetsRegistry.uniqueWeightsForTypeIndexes(
-                    _assetId,
-                    _assetTemp.weight
-                )
-                : assetsRegistry.uniqueWeightsForTypeIndexes(
-                    _assetId,
-                    _assetTemp.weight
-                ) + 1
+            (assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) ==
+                _weightsForType.length - 1)
+                ? assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight)
+                : assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) + 1
         ];
         _price =
             MAX_WEIGHT -
@@ -288,14 +273,11 @@ contract Scion is Ownable, ERC721Enumerable {
         uint256 _assetIndex,
         uint256 _state
     ) private view returns (uint256 _weight) {
-        uint256 currentWeight = assetsRegistry
-        .assetsForType(_assetId)[_assetIndex].weight;
+        uint256 currentWeight = assetsRegistry.assetsForType(_assetId)[_assetIndex].weight;
 
         if (_state == 1) return currentWeight;
 
-        uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(
-            _assetId
-        );
+        uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(_assetId);
 
         for (uint256 i = 0; i < _weightsForType.length; i++) {
             if (_weightsForType[i] == currentWeight) {
@@ -318,17 +300,14 @@ contract Scion is Ownable, ERC721Enumerable {
     ) private view returns (IAssetRegistry.Asset memory) {
         uint256 currentWeight = weightChange(_assetId, _assetIndex, _state);
         uint256 count;
-        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry
-            .assetsForType(_assetId);
+        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry.assetsForType(_assetId);
         for (uint256 i = 0; i < _assetsOfType.length; i++) {
             if (_assetsOfType[i].weight == currentWeight) {
                 count++;
             }
         }
 
-        IAssetRegistry.Asset[] memory assetsTemp = new IAssetRegistry.Asset[](
-            count
-        );
+        IAssetRegistry.Asset[] memory assetsTemp = new IAssetRegistry.Asset[](count);
         uint256 index;
 
         for (uint256 i = 0; i < _assetsOfType.length; i++) {
@@ -357,77 +336,49 @@ contract Scion is Ownable, ERC721Enumerable {
 
         if (_assetId == 0) {
             _previousWeight = scionsData[_tokenId].background.weight;
-            scionsData[_tokenId].background = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].background = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].background.weight;
             _newAsset = scionsData[_tokenId].background.asset;
         }
 
         if (_assetId == 1) {
             _previousWeight = scionsData[_tokenId].halo.weight;
-            scionsData[_tokenId].halo = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].halo = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].halo.weight;
             _newAsset = scionsData[_tokenId].halo.asset;
         }
 
         if (_assetId == 2) {
             _previousWeight = scionsData[_tokenId].head.weight;
-            scionsData[_tokenId].head = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].head = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].head.weight;
             _newAsset = scionsData[_tokenId].head.asset;
         }
 
         if (_assetId == 3) {
             _previousWeight = scionsData[_tokenId].body.weight;
-            scionsData[_tokenId].body = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].body = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].body.weight;
             _newAsset = scionsData[_tokenId].body.asset;
         }
 
         if (_assetId == 4) {
             _previousWeight = scionsData[_tokenId].wings.weight;
-            scionsData[_tokenId].wings = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].wings = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].wings.weight;
             _newAsset = scionsData[_tokenId].wings.asset;
         }
 
         if (_assetId == 5) {
             _previousWeight = scionsData[_tokenId].hands.weight;
-            scionsData[_tokenId].hands = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].hands = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].hands.weight;
             _newAsset = scionsData[_tokenId].hands.asset;
         }
 
         if (_assetId == 6) {
             _previousWeight = scionsData[_tokenId].sigil.weight;
-            scionsData[_tokenId].sigil = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].sigil = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].sigil.weight;
             _newAsset = scionsData[_tokenId].sigil.asset;
         }
@@ -466,10 +417,7 @@ contract Scion is Ownable, ERC721Enumerable {
     }
 
     function claimScion(uint256 mintPassId) public {
-        require(
-            mintingPass.ownerOf(mintPassId) == msg.sender,
-            "Scion: invalid owner"
-        );
+        require(mintingPass.ownerOf(mintPassId) == msg.sender, "Scion: invalid owner");
 
         // Burning minting pass
         mintingPass.burn(mintPassId);
@@ -511,13 +459,9 @@ contract Scion is Ownable, ERC721Enumerable {
 
         emit RandomGenerated(randomNumber);
 
-        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry
-            .assetsForType(_assetId);
+        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry.assetsForType(_assetId);
         for (uint256 i; i < _assetsOfType.length; i++) {
-            if (
-                randomNumber > previousWeightTemp &&
-                randomNumber <= _assetsOfType[i].weightSum
-            ) {
+            if (randomNumber > previousWeightTemp && randomNumber <= _assetsOfType[i].weightSum) {
                 IAssetRegistry.Asset memory _newAsset = IAssetRegistry.Asset(
                     _assetsOfType[i].asset,
                     _assetsOfType[i].weightSum,

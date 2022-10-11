@@ -10,15 +10,7 @@ library RandomGenerator {
         uint256 _salt
     ) external view returns (uint256) {
         return
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        block.timestamp,
-                        block.difficulty,
-                        user,
-                        _salt
-                    )
-                )
-            ) % _limit;
+            uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, user, _salt))) %
+            _limit;
     }
 }
