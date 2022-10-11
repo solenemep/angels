@@ -21,9 +21,9 @@ contract Scion is Ownable, ERC721Enumerable {
     MintPasses public mintingPass;
     Counters.Counter private _tokenIdTracker;
 
-    uint256 public constant priceForRarityInSouls = 100e18;
+    uint256 public constant PRICE_FOR_RARITY_IN_SOULS = 100e18;
     uint256 public constant BP = 10000;
-    uint256 private constant MAX_WEIGHT = 2500;
+    uint256 private constant _MAX_WEIGHT = 2500;
 
     string private _baseTokenURI;
 
@@ -71,7 +71,7 @@ contract Scion is Ownable, ERC721Enumerable {
     );
     event ScionClaimed(
         address indexed _user,
-        uint256 indexed _tokenId,
+        uint256 indexed _scionId,
         uint256 mintPassId,
         Scions _assets,
         uint256 _timestamp
@@ -101,8 +101,7 @@ contract Scion is Ownable, ERC721Enumerable {
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {
         require(
-            ownerOf(tokenId) == _msgSender() ||
-                getApproved(tokenId) == _msgSender(),
+            ownerOf(tokenId) == _msgSender() || getApproved(tokenId) == _msgSender(),
             "ERC721ACommon: Not approved nor owner"
         );
         _;
@@ -148,54 +147,40 @@ contract Scion is Ownable, ERC721Enumerable {
         }
     }
 
-    function rerollPrice(uint256 _tokenId, uint256 _assetId)
-        public
-        view
-        returns (uint256 _price)
-    {
+    function rerollPrice(uint256 _assetId, uint256 _tokenID) public view returns (uint256 _price) {
         IAssetRegistry.Asset memory _assetTemp = _assetId == 0
-            ? scionsData[_tokenId].background
+            ? scionsData[_tokenID].background
             : (
                 _assetId == 1
-                    ? scionsData[_tokenId].halo
+                    ? scionsData[_tokenID].halo
                     : (
                         _assetId == 2
-                            ? scionsData[_tokenId].head
+                            ? scionsData[_tokenID].head
                             : (
                                 _assetId == 3
-                                    ? scionsData[_tokenId].body
+                                    ? scionsData[_tokenID].body
                                     : (
                                         _assetId == 4
-                                            ? scionsData[_tokenId].wings
+                                            ? scionsData[_tokenID].wings
                                             : (
                                                 _assetId == 5
-                                                    ? scionsData[_tokenId].hands
-                                                    : scionsData[_tokenId].sigil
+                                                    ? scionsData[_tokenID].hands
+                                                    : scionsData[_tokenID].sigil
                                             )
                                     )
                             )
                     )
             );
 
-        uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(
-            _assetId
-        );
+        uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(_assetId);
         uint256 _weightWanted = _weightsForType[
-            (assetsRegistry.uniqueWeightsForTypeIndexes(
-                _assetId,
-                _assetTemp.weight
-            ) == _weightsForType.length - 1)
-                ? assetsRegistry.uniqueWeightsForTypeIndexes(
-                    _assetId,
-                    _assetTemp.weight
-                )
-                : assetsRegistry.uniqueWeightsForTypeIndexes(
-                    _assetId,
-                    _assetTemp.weight
-                ) + 1
+            (assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) ==
+                _weightsForType.length - 1)
+                ? assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight)
+                : assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) + 1
         ];
         _price =
-            MAX_WEIGHT -
+            _MAX_WEIGHT -
             _assetTemp.weight +
             _weightWanted +
             ((_assetTemp.weight + _weightWanted) / _weightWanted**2);
@@ -204,12 +189,23 @@ contract Scion is Ownable, ERC721Enumerable {
     function burnForSoul(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
 
-        soul.safeTransfer(msg.sender, 1 * priceForRarityInSouls);
+        soul.safeTransfer(msg.sender, 1 * PRICE_FOR_RARITY_IN_SOULS);
         _burn(tokenId); // add new burn with scionsData
     }
 
+    function priceInSouls() public pure returns (uint256 price) {
+        return 1 * PRICE_FOR_RARITY_IN_SOULS;
+    }
+
+    function _random(uint256 _limit, uint256 _salt) internal view returns (uint256) {
+        return
+            uint256(
+                keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender, _salt))
+            ) % _limit;
+    }
+
     // rarity should not be less then it was before
-    function rerollCalculate(
+    function _rerollCalculate(
         uint256 _randomNumber,
         uint256 _assetId,
         uint256 _tokenId,
@@ -225,7 +221,7 @@ contract Scion is Ownable, ERC721Enumerable {
             );
 
         if (_assetId == 0) {
-            handleWeightChange(
+            _handleWeightChange(
                 scionsData[_tokenId].background.assetIndex,
                 _assetId,
                 _tokenId,
@@ -233,7 +229,7 @@ contract Scion is Ownable, ERC721Enumerable {
                 _price
             );
         } else if (_assetId == 1) {
-            handleWeightChange(
+            _handleWeightChange(
                 scionsData[_tokenId].halo.assetIndex,
                 _assetId,
                 _tokenId,
@@ -241,7 +237,7 @@ contract Scion is Ownable, ERC721Enumerable {
                 _price
             );
         } else if (_assetId == 2) {
-            handleWeightChange(
+            _handleWeightChange(
                 scionsData[_tokenId].head.assetIndex,
                 _assetId,
                 _tokenId,
@@ -249,7 +245,7 @@ contract Scion is Ownable, ERC721Enumerable {
                 _price
             );
         } else if (_assetId == 3) {
-            handleWeightChange(
+            _handleWeightChange(
                 scionsData[_tokenId].body.assetIndex,
                 _assetId,
                 _tokenId,
@@ -257,7 +253,7 @@ contract Scion is Ownable, ERC721Enumerable {
                 _price
             );
         } else if (_assetId == 4) {
-            handleWeightChange(
+            _handleWeightChange(
                 scionsData[_tokenId].wings.assetIndex,
                 _assetId,
                 _tokenId,
@@ -265,7 +261,7 @@ contract Scion is Ownable, ERC721Enumerable {
                 _price
             );
         } else if (_assetId == 5) {
-            handleWeightChange(
+            _handleWeightChange(
                 scionsData[_tokenId].hands.assetIndex,
                 _assetId,
                 _tokenId,
@@ -273,7 +269,7 @@ contract Scion is Ownable, ERC721Enumerable {
                 _price
             );
         } else if (_assetId == 6) {
-            handleWeightChange(
+            _handleWeightChange(
                 scionsData[_tokenId].sigil.assetIndex,
                 _assetId,
                 _tokenId,
@@ -283,13 +279,12 @@ contract Scion is Ownable, ERC721Enumerable {
         }
     }
 
-    function weightChange(
+    function _weightChange(
         uint256 _assetId,
         uint256 _assetIndex,
         uint256 _state
     ) private view returns (uint256 _weight) {
-        uint256 currentWeight = assetsRegistry
-        .assetsForType(_assetId)[_assetIndex].weight;
+        uint256 currentWeight = assetsRegistry.assetsForType(_assetId)[_assetIndex].weight;
 
         if (_state == 1) return currentWeight;
 
@@ -311,15 +306,14 @@ contract Scion is Ownable, ERC721Enumerable {
         return currentWeight;
     }
 
-    function setWeightChange(
+    function _setWeightChange(
         uint256 _assetId,
         uint256 _assetIndex,
         uint256 _state
     ) private view returns (IAssetRegistry.Asset memory) {
-        uint256 currentWeight = weightChange(_assetId, _assetIndex, _state);
+        uint256 currentWeight = _weightChange(_assetId, _assetIndex, _state);
         uint256 count;
-        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry
-            .assetsForType(_assetId);
+        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry.assetsForType(_assetId);
         for (uint256 i = 0; i < _assetsOfType.length; i++) {
             if (_assetsOfType[i].weight == currentWeight) {
                 count++;
@@ -338,13 +332,14 @@ contract Scion is Ownable, ERC721Enumerable {
             }
         }
 
-        uint256 _random = RandomGenerator.random(_msgSender(), count, 0);
-        IAssetRegistry.Asset memory result = assetsTemp[_random];
+        uint256 _randomNumber = _random(count, 0);
+        IAssetRegistry.Asset memory result = assetsTemp[_randomNumber];
+        result.hasIt = true;
 
         return result;
     }
 
-    function handleWeightChange(
+    function _handleWeightChange(
         uint256 _assetIndex,
         uint256 _assetId,
         uint256 _tokenId,
@@ -357,77 +352,49 @@ contract Scion is Ownable, ERC721Enumerable {
 
         if (_assetId == 0) {
             _previousWeight = scionsData[_tokenId].background.weight;
-            scionsData[_tokenId].background = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].background = _setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].background.weight;
             _newAsset = scionsData[_tokenId].background.asset;
         }
 
         if (_assetId == 1) {
             _previousWeight = scionsData[_tokenId].halo.weight;
-            scionsData[_tokenId].halo = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].halo = _setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].halo.weight;
             _newAsset = scionsData[_tokenId].halo.asset;
         }
 
         if (_assetId == 2) {
             _previousWeight = scionsData[_tokenId].head.weight;
-            scionsData[_tokenId].head = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].head = _setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].head.weight;
             _newAsset = scionsData[_tokenId].head.asset;
         }
 
         if (_assetId == 3) {
             _previousWeight = scionsData[_tokenId].body.weight;
-            scionsData[_tokenId].body = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].body = _setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].body.weight;
             _newAsset = scionsData[_tokenId].body.asset;
         }
 
         if (_assetId == 4) {
             _previousWeight = scionsData[_tokenId].wings.weight;
-            scionsData[_tokenId].wings = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].wings = _setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].wings.weight;
             _newAsset = scionsData[_tokenId].wings.asset;
         }
 
         if (_assetId == 5) {
             _previousWeight = scionsData[_tokenId].hands.weight;
-            scionsData[_tokenId].hands = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].hands = _setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].hands.weight;
             _newAsset = scionsData[_tokenId].hands.asset;
         }
 
         if (_assetId == 6) {
             _previousWeight = scionsData[_tokenId].sigil.weight;
-            scionsData[_tokenId].sigil = setWeightChange(
-                _assetId,
-                _assetIndex,
-                _state
-            );
+            scionsData[_tokenId].sigil = _setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].sigil.weight;
             _newAsset = scionsData[_tokenId].sigil.asset;
         }
@@ -453,15 +420,10 @@ contract Scion is Ownable, ERC721Enumerable {
     function rerollAsset(uint256 tokenId, uint256 assetId) public {
         require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
         require(assetId <= 6);
-        uint256 _price = rerollPrice(tokenId, assetId);
+        uint256 _price = rerollPrice(assetId, tokenId);
 
         keter.safeTransferFrom(msg.sender, address(this), _price * 10**18);
-        rerollCalculate(
-            RandomGenerator.random(_msgSender(), BP, 0),
-            assetId,
-            tokenId,
-            _price * 10**18
-        );
+        _rerollCalculate(_random(BP, 0), assetId, tokenId, _price * 10**18);
         //requestRandomWords(tokenId, int256(assetId), 0, -1, 2);
     }
 
@@ -474,7 +436,7 @@ contract Scion is Ownable, ERC721Enumerable {
         // Burning minting pass
         mintingPass.burn(mintPassId);
 
-        uint256 newTokenId = _tokenIdTracker.current();
+        _assignAssets(_tokenIdTracker.current(), tokenId);
 
         assignAssets(newTokenId, mintPassId);
         _safeMint(msg.sender, newTokenId);
@@ -490,35 +452,35 @@ contract Scion is Ownable, ERC721Enumerable {
         );
     }
 
-    function assignAssets(uint256 tokenId, uint256 mintPassId) internal {
+    function _assignAssets(uint256 scionTokenId, uint256 mintPassId) internal {
         for (uint256 i; i <= 6; i++) {
-            _assignAssetsFromType(i, tokenId, mintPassId);
+            _assignAssetsFromType(i, mintPassId, scionTokenId);
         }
+        emit ScionClaimed(
+            msg.sender,
+            scionTokenId,
+            mintPassId,
+            scionsData[scionTokenId],
+            block.timestamp
+        );
     }
 
     function _assignAssetsFromType(
         uint256 _assetId,
-        uint256 _tokenId,
-        uint256 _mintPassId
+        uint256 _mintPassId,
+        uint256 _scionTokenId
     ) internal {
         uint256 previousWeightTemp;
         uint256 salt = mintingPass.mintingPassRandom(_mintPassId);
-        uint256 randomNumber = RandomGenerator.random(
-            _msgSender(),
-            assetsRegistry.totalWeightForType(_assetId),
-            salt
-        );
+        uint256 randomNumber = _random(assetsRegistry.totalWeightForType(_assetId), salt);
 
         emit RandomGenerated(randomNumber);
 
-        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry
-            .assetsForType(_assetId);
+        IAssetRegistry.Asset[] memory _assetsOfType = assetsRegistry.assetsForType(_assetId);
         for (uint256 i; i < _assetsOfType.length; i++) {
-            if (
-                randomNumber > previousWeightTemp &&
-                randomNumber <= _assetsOfType[i].weightSum
-            ) {
+            if (randomNumber > previousWeightTemp && randomNumber <= _assetsOfType[i].weightSum) {
                 IAssetRegistry.Asset memory _newAsset = IAssetRegistry.Asset(
+                    true,
                     _assetsOfType[i].asset,
                     _assetsOfType[i].weightSum,
                     _assetsOfType[i].weight,
@@ -526,25 +488,25 @@ contract Scion is Ownable, ERC721Enumerable {
                     i
                 );
                 if (_assetId == 0) {
-                    scionsData[_tokenId].background = _newAsset;
+                    scionsData[_scionTokenId].background = _newAsset;
                 }
                 if (_assetId == 1) {
-                    scionsData[_tokenId].halo = _newAsset;
+                    scionsData[_scionTokenId].halo = _newAsset;
                 }
                 if (_assetId == 2) {
-                    scionsData[_tokenId].head = _newAsset;
+                    scionsData[_scionTokenId].head = _newAsset;
                 }
                 if (_assetId == 3) {
-                    scionsData[_tokenId].body = _newAsset;
+                    scionsData[_scionTokenId].body = _newAsset;
                 }
                 if (_assetId == 4) {
-                    scionsData[_tokenId].wings = _newAsset;
+                    scionsData[_scionTokenId].wings = _newAsset;
                 }
                 if (_assetId == 5) {
-                    scionsData[_tokenId].hands = _newAsset;
+                    scionsData[_scionTokenId].hands = _newAsset;
                 }
                 if (_assetId == 6) {
-                    scionsData[_tokenId].sigil = _newAsset;
+                    scionsData[_scionTokenId].sigil = _newAsset;
                 }
                 break;
             }

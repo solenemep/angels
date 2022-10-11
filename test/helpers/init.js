@@ -160,13 +160,7 @@ const mintPassesSetUp = async (mintPasses, scionAddress) => {
 
 const assetSetUp = async (assetRegistry) => {
   for (const asset of assets) {
-    await assetRegistry.setAssets(
-      asset.assetId,
-      asset.assets,
-      asset.weigthSum,
-      asset.weigths,
-      asset.names
-    );
+    await scion.setAssets(asset.assetId, asset.assets, asset.weigthSum, asset.weigths, asset.names);
   }
 };
 
