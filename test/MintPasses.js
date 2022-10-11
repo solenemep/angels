@@ -19,8 +19,6 @@ describe("MintPasses", async () => {
   let owner;
   let user1, user2, user3, user4, user5, user6;
 
-  // const provider = ethers.getDefaultProvider();
-
   const AUCTION_DURATION = 3 * 24 * 60; // 3 days (in minutes)
 
   const BidClass = {
@@ -38,8 +36,8 @@ describe("MintPasses", async () => {
     OWNED: 1,
   };
 
-  beforeEach("setup", async () => {
-    const setups = await init();
+  before("setup", async () => {
+    const setups = await init(false);
     owner = setups.users[0];
     user1 = setups.users[1];
     user2 = setups.users[2];
@@ -509,6 +507,189 @@ describe("MintPasses", async () => {
     });
   });
 
+  describe("getBidClass", async () => {
+    const bidsAmounts = [30, 30, 30, 30, 30, 30, 30];
+    const bidValues = [
+      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(2).toString(),
+      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(10).toString(),
+      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(20).toString(),
+      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(30).toString(),
+      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(40).toString(),
+      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(50).toString(),
+    ];
+
+    beforeEach("setup", async () => {
+      const start = await getTime();
+      await mintPasses.connect(owner).startAuction(AUCTION_DURATION, start);
+
+      await mintPasses.connect(user1).bid(bidsAmounts[0], bidValues[0], {
+        value: toBN(bidValues[0]).times(bidsAmounts[0]).toFixed().toString(),
+      });
+      await mintPasses.connect(user2).bid(bidsAmounts[1], bidValues[1], {
+        value: toBN(bidValues[1]).times(bidsAmounts[1]).toFixed().toString(),
+      });
+      await mintPasses.connect(user3).bid(bidsAmounts[2], bidValues[2], {
+        value: toBN(bidValues[2]).times(bidsAmounts[2]).toFixed().toString(),
+      });
+      await mintPasses.connect(user4).bid(bidsAmounts[3], bidValues[3], {
+        value: toBN(bidValues[3]).times(bidsAmounts[3]).toFixed().toString(),
+      });
+      await mintPasses.connect(user5).bid(bidsAmounts[4], bidValues[4], {
+        value: toBN(bidValues[4]).times(bidsAmounts[4]).toFixed().toString(),
+      });
+      await mintPasses.connect(user6).bid(bidsAmounts[5], bidValues[5], {
+        value: toBN(bidValues[5]).times(bidsAmounts[5]).toFixed().toString(),
+      });
+
+      await mintPasses.connect(owner).finishAuction();
+    });
+
+    it("has no class yet", async () => {
+      const listU1Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user1.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU1Bids[i].class).to.equal(BidClass.NONE);
+      }
+      const listU2Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user2.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU2Bids[i].class).to.equal(BidClass.NONE);
+      }
+      const listU3Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user3.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU3Bids[i].class).to.equal(BidClass.NONE);
+      }
+      const listU4Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user4.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU4Bids[i].class).to.equal(BidClass.NONE);
+      }
+      const listU5Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user5.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU5Bids[i].class).to.equal(BidClass.NONE);
+      }
+      const listU6Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user6.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU6Bids[i].class).to.equal(BidClass.NONE);
+      }
+    });
+
+    it("has class", async () => {
+      const time = await getTime();
+      await mintPasses
+        .connect(owner)
+        .setClasses(
+          [
+            BidClass.BRONZE,
+            BidClass.SILVER,
+            BidClass.GOLD,
+            BidClass.PLATINUM,
+            BidClass.RUBY,
+            BidClass.ONYX,
+          ],
+          [
+            classLimits[0].bottom,
+            classLimits[1].bottom,
+            classLimits[2].bottom,
+            classLimits[3].bottom,
+            classLimits[4].bottom,
+            classLimits[5].bottom,
+          ],
+          [
+            classLimits[0].top,
+            classLimits[1].top,
+            classLimits[2].top,
+            classLimits[3].top,
+            classLimits[4].top,
+            classLimits[5].top,
+          ],
+          [time, time, time, time, time, time]
+        );
+
+      const listU1Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user1.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU1Bids[i].class).to.equal(BidClass.BRONZE);
+      }
+      const listU2Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user2.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU2Bids[i].class).to.equal(BidClass.SILVER);
+      }
+      const listU3Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user3.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU3Bids[i].class).to.equal(BidClass.GOLD);
+      }
+      const listU4Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user4.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU4Bids[i].class).to.equal(BidClass.PLATINUM);
+      }
+      const listU5Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user5.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU5Bids[i].class).to.equal(BidClass.RUBY);
+      }
+      const listU6Bids = await mintPasses.getListBids(
+        0,
+        30,
+        ListOption.OWNED,
+        user6.address
+      );
+      for (let i = 0; i < 30; i++) {
+        expect(listU6Bids[i].class).to.equal(BidClass.ONYX);
+      }
+    });
+  });
+
   describe("claimPass", async () => {
     const bidsAmount = 1;
     const bidValue = toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT)
@@ -562,9 +743,6 @@ describe("MintPasses", async () => {
         (await mintPasses.getListBids(0, 1, 0, ZERO_ADDRESS))[0].class
       ).to.equal(BidClass.BRONZE);
 
-      const start = await getTime();
-      await mintPasses.connect(owner).startAuction(AUCTION_DURATION, start);
-
       await expect(mintPasses.connect(user1).claimPass([1])).to.be.revertedWith(
         reason
       );
@@ -612,9 +790,6 @@ describe("MintPasses", async () => {
 
       expect(tx).to.changeTokenBalance(mintPasses, user1, 1);
 
-      expect(await mintPasses.mintingPassClass(0)).to.equal(BidClass.BRONZE);
-      expect(await mintPasses.mintingPassRandom(0)).to.be.below(1000);
-
       // getter
       const allBidCount = await mintPasses.countAllBids();
       const allBidList = await mintPasses.getListBids(
@@ -643,6 +818,8 @@ describe("MintPasses", async () => {
       expect(ownedBidList[0].timestamp).to.equal(time);
       expect(ownedBidList[0].class).to.equal(BidClass.BRONZE);
       expect(ownedBidList[0].claimed).to.equal(true);
+
+      // TODO test rarity generation
     });
     it("does not take action if inexistant bid", async () => {
       const time = await getTime();
@@ -850,186 +1027,58 @@ describe("MintPasses", async () => {
     });
   });
 
-  describe("getBidClass", async () => {
-    const bidsAmounts = [30, 30, 30, 30, 30, 30, 30];
-    const bidValues = [
-      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(2).toString(),
-      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(10).toString(),
-      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(20).toString(),
-      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(30).toString(),
-      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(40).toString(),
-      toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(50).toString(),
-    ];
-
+  describe("claimPromotionMintingPasses", async () => {
     beforeEach("setup", async () => {
       const start = await getTime();
       await mintPasses.connect(owner).startAuction(AUCTION_DURATION, start);
 
-      await mintPasses.connect(user1).bid(bidsAmounts[0], bidValues[0], {
-        value: toBN(bidValues[0]).times(bidsAmounts[0]).toFixed().toString(),
-      });
-      await mintPasses.connect(user2).bid(bidsAmounts[1], bidValues[1], {
-        value: toBN(bidValues[1]).times(bidsAmounts[1]).toFixed().toString(),
-      });
-      await mintPasses.connect(user3).bid(bidsAmounts[2], bidValues[2], {
-        value: toBN(bidValues[2]).times(bidsAmounts[2]).toFixed().toString(),
-      });
-      await mintPasses.connect(user4).bid(bidsAmounts[3], bidValues[3], {
-        value: toBN(bidValues[3]).times(bidsAmounts[3]).toFixed().toString(),
-      });
-      await mintPasses.connect(user5).bid(bidsAmounts[4], bidValues[4], {
-        value: toBN(bidValues[4]).times(bidsAmounts[4]).toFixed().toString(),
-      });
-      await mintPasses.connect(user6).bid(bidsAmounts[5], bidValues[5], {
-        value: toBN(bidValues[5]).times(bidsAmounts[5]).toFixed().toString(),
-      });
+      await mintPasses.connect(owner).addPromotionMintingAddress(user1.address);
+      await mintPasses.connect(owner).addPromotionMintingAddress(user2.address);
+    });
+    it("reverts if auction active", async () => {
+      const reason = "Auction active";
+
+      await expect(
+        mintPasses.connect(user1).claimPromotionMintingPasses()
+      ).to.be.revertedWith(reason);
+    });
+    it("reverts if not beneficiary", async () => {
+      const reason = "MintPasses: not beneficary";
 
       await mintPasses.connect(owner).finishAuction();
+
+      await expect(
+        mintPasses.connect(user3).claimPromotionMintingPasses()
+      ).to.be.revertedWith(reason);
     });
+    it("reverts if already claimed", async () => {
+      const reason = "MintPasses: not beneficary";
 
-    it("has no class yet", async () => {
-      const listU1Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user1.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU1Bids[i].class).to.equal(BidClass.NONE);
-      }
-      const listU2Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user2.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU2Bids[i].class).to.equal(BidClass.NONE);
-      }
-      const listU3Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user3.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU3Bids[i].class).to.equal(BidClass.NONE);
-      }
-      const listU4Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user4.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU4Bids[i].class).to.equal(BidClass.NONE);
-      }
-      const listU5Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user5.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU5Bids[i].class).to.equal(BidClass.NONE);
-      }
-      const listU6Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user6.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU6Bids[i].class).to.equal(BidClass.NONE);
-      }
+      await mintPasses.connect(owner).finishAuction();
+
+      await mintPasses.connect(user1).claimPromotionMintingPasses();
+
+      await expect(
+        mintPasses.connect(user1).claimPromotionMintingPasses()
+      ).to.be.revertedWith(reason);
     });
+    it("claim promotion pass successfully", async () => {
+      await mintPasses.connect(owner).finishAuction();
 
-    it("has class", async () => {
-      const time = await getTime();
-      await mintPasses
-        .connect(owner)
-        .setClasses(
-          [
-            BidClass.BRONZE,
-            BidClass.SILVER,
-            BidClass.GOLD,
-            BidClass.PLATINUM,
-            BidClass.RUBY,
-            BidClass.ONYX,
-          ],
-          [
-            classLimits[0].bottom,
-            classLimits[1].bottom,
-            classLimits[2].bottom,
-            classLimits[3].bottom,
-            classLimits[4].bottom,
-            classLimits[5].bottom,
-          ],
-          [
-            classLimits[0].top,
-            classLimits[1].top,
-            classLimits[2].top,
-            classLimits[3].top,
-            classLimits[4].top,
-            classLimits[5].top,
-          ],
-          [time, time, time, time, time, time]
-        );
+      const tx1 = await mintPasses.connect(user1).claimPromotionMintingPasses();
+      const tx2 = await mintPasses.connect(user2).claimPromotionMintingPasses();
 
-      const listU1Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user1.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU1Bids[i].class).to.equal(BidClass.BRONZE);
-      }
-      const listU2Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user2.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU2Bids[i].class).to.equal(BidClass.SILVER);
-      }
-      const listU3Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user3.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU3Bids[i].class).to.equal(BidClass.GOLD);
-      }
-      const listU4Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user4.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU4Bids[i].class).to.equal(BidClass.PLATINUM);
-      }
-      const listU5Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user5.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU5Bids[i].class).to.equal(BidClass.RUBY);
-      }
-      const listU6Bids = await mintPasses.getListBids(
-        0,
-        30,
-        ListOption.OWNED,
-        user6.address
-      );
-      for (let i = 0; i < 30; i++) {
-        expect(listU6Bids[i].class).to.equal(BidClass.ONYX);
-      }
+      expect(tx1).to.changeTokenBalance(mintPasses, user1, 1);
+      expect(tx2).to.changeTokenBalance(mintPasses, user2, 1);
+
+      // TODO test rarity generation
+    });
+    it("emits PromotionPassClaimed", async () => {
+      await mintPasses.connect(owner).finishAuction();
+
+      await expect(mintPasses.connect(user1).claimPromotionMintingPasses())
+        .to.emit(mintPasses, "PromotionPassClaimed")
+        .withArgs(user1.address, 0, (await getTime()).toString());
     });
   });
 
@@ -1286,6 +1335,11 @@ describe("MintPasses", async () => {
         );
 
       const tx = await mintPasses.connect(user1).claimPass([1]);
+      await getCosts(tx);
+    });
+    it("claimPromotionMintingPasses", async () => {
+      await mintPasses.connect(owner).addPromotionMintingAddress(user1.address);
+      const tx = await mintPasses.connect(user1).claimPromotionMintingPasses();
       await getCosts(tx);
     });
   });
