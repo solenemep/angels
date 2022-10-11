@@ -54,7 +54,7 @@ contract Staking is ERC721Holder {
     function calculateRewards(address _user, uint256 _tokenId) public view returns(uint256) {
         uint256 _blocksPassed = block.number - stakes[_user][_tokenId].block;
         
-        return totalStakers == 0 ? 0 : _blocksPassed * rewardPerBlock / totalStakers - stakes[msg.sender][_tokenId].harvested;
+        return totalStakers == 0 ? 0 : _blocksPassed * rewardPerBlock * 10**18 / totalStakers - stakes[_user][_tokenId].harvested;
     }
 
     function stakeNFTs(uint256[] memory _tokenIds) external {
@@ -132,7 +132,7 @@ contract Staking is ERC721Holder {
 
     function harvest(uint256 _tokenId) public {
         require(stakes[msg.sender][_tokenId].staked, "Staking: No stake with this token id");
-        uint256 reward = calculateRewards(msg.sender, _tokenId) - stakes[msg.sender][_tokenId].harvested;
+        uint256 reward = calculateRewards(msg.sender, _tokenId);
         stakes[msg.sender][_tokenId].harvested += reward;
 
         token.safeTransfer(msg.sender, reward);
