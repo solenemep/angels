@@ -38,9 +38,7 @@ const init = async (isFork) => {
 
     // Registry
     const AssetRegistry = await ethers.getContractFactory("AssetsRegistry");
-    assetRegistry = await AssetRegistry.attach(
-      addresses[network].assetRegistryAddress
-    );
+    assetRegistry = await AssetRegistry.attach(addresses[network].assetRegistryAddress);
 
     // ERC20
     const Keter = await ethers.getContractFactory("Keter");
@@ -160,7 +158,7 @@ const mintPassesSetUp = async (mintPasses, scionAddress) => {
 
 const assetSetUp = async (assetRegistry) => {
   for (const asset of assets) {
-    await scion.setAssets(asset.assetId, asset.assets, asset.weigthSum, asset.weigths, asset.names);
+    await assetRegistry.setAssets(asset.assetId, asset.assets, asset.weigthSum, asset.weigths, asset.names);
   }
 };
 

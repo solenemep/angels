@@ -3,14 +3,7 @@ const { args } = require("./helpers/arguments");
 const { assets } = require("./helpers/assets");
 const { classLimits } = require("./helpers/classLimits");
 const { init } = require("./helpers/init");
-const {
-  toBN,
-  toWei,
-  snapshot,
-  restore,
-  getTime,
-  getCosts,
-} = require("./helpers/utils");
+const { toBN, toWei, snapshot, restore, getTime, getCosts } = require("./helpers/utils");
 
 describe("Scion", async () => {
   let assetRegistry;
@@ -91,14 +84,7 @@ describe("Scion", async () => {
     await mintPasses
       .connect(owner)
       .setClasses(
-        [
-          BidClass.BRONZE,
-          BidClass.SILVER,
-          BidClass.GOLD,
-          BidClass.PLATINUM,
-          BidClass.RUBY,
-          BidClass.ONYX,
-        ],
+        [BidClass.BRONZE, BidClass.SILVER, BidClass.GOLD, BidClass.PLATINUM, BidClass.RUBY, BidClass.ONYX],
         [
           classLimits[0].bottom,
           classLimits[1].bottom,
@@ -145,16 +131,12 @@ describe("Scion", async () => {
     it("reverts if inexistant mintPass", async () => {
       const reason = "ERC721: owner query for nonexistent token";
 
-      await expect(scion.connect(user1).claimScion(6)).to.be.revertedWith(
-        reason
-      );
+      await expect(scion.connect(user1).claimScion(6)).to.be.revertedWith(reason);
     });
     it("reverts if not owner of mintPass", async () => {
       const reason = "Scion: invalid owner";
 
-      await expect(scion.connect(user2).claimScion(0)).to.be.revertedWith(
-        reason
-      );
+      await expect(scion.connect(user2).claimScion(0)).to.be.revertedWith(reason);
     });
     it("claim scion successfully", async () => {
       const tx1 = await scion.connect(user1).claimScion(0);
@@ -225,26 +207,18 @@ describe("Scion", async () => {
     it("reverts if inexistant scion", async () => {
       const reason = "ERC721: owner query for nonexistent token";
 
-      await expect(scion.connect(user1).rerollAsset(6, 2)).to.be.revertedWith(
-        reason
-      );
+      await expect(scion.connect(user1).rerollAsset(6, 2)).to.be.revertedWith(reason);
     });
     it("reverts if not owner of scion", async () => {
       const reason = "Scion: invalid owner";
 
-      await expect(scion.connect(user2).rerollAsset(0, 2)).to.be.revertedWith(
-        reason
-      );
+      await expect(scion.connect(user2).rerollAsset(0, 2)).to.be.revertedWith(reason);
     });
     it("reverts if inexistant asset", async () => {
       const reason = "";
 
-      await expect(scion.connect(user1).rerollAsset(0, 0)).to.be.revertedWith(
-        reason
-      );
-      await expect(scion.connect(user1).rerollAsset(0, 7)).to.be.revertedWith(
-        reason
-      );
+      await expect(scion.connect(user1).rerollAsset(0, 0)).to.be.revertedWith(reason);
+      await expect(scion.connect(user1).rerollAsset(0, 7)).to.be.revertedWith(reason);
     });
     it("reroll asset successfully", async () => {
       const price1 = toWei((await scion.rerollPrice(0, 1)).toString());

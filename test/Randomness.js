@@ -73,8 +73,7 @@ describe("Randomness", async () => {
       const standardDeviation = getStandardDeviation(frequency);
       expect(standardDeviation).to.be.closeTo(
         sample / range / Math.sqrt(12), // standard deviation in perfect unifom distribution
-        (sample / range + margin) / Math.sqrt(12) -
-          sample / range / Math.sqrt(12)
+        (sample / range + margin) / Math.sqrt(12) - sample / range / Math.sqrt(12)
       );
       console.log(frequency);
     });
