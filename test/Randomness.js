@@ -35,7 +35,7 @@ describe("Randomness", async () => {
   let frequency;
 
   before("setup", async () => {
-    const setups = await init(true);
+    const setups = await init(false);
 
     randomGenerator = setups.randomGenerator;
 

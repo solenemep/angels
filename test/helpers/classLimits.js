@@ -1,6 +1,6 @@
 const { toWei } = require("./utils");
 
-const BidClass = {
+const Class = {
   NONE: 0,
   BRONZE: 1,
   SILVER: 2,
@@ -19,4 +19,15 @@ const classLimits = [
   { bottom: toWei("50"), top: toWei("60") },
 ];
 
+const weightLimits = [
+  { bottom: 15, top: 2500 },
+  { bottom: 10, top: 2500 },
+  { bottom: 5, top: 2000 },
+  { bottom: 1, top: 1500 },
+  { bottom: 0, top: 1000 },
+  { bottom: 0, top: 8000 },
+];
+
+module.exports.Class = Class;
 module.exports.classLimits = classLimits;
+module.exports.weightLimits = weightLimits;

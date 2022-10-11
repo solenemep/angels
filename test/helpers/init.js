@@ -1,6 +1,7 @@
 const { ethers } = require("hardhat");
 const { args } = require("./arguments");
 const { assets } = require("./assets");
+const { weightLimits, Class } = require("./classLimits");
 
 const addresses = {
   goerli: {
@@ -154,6 +155,26 @@ const init = async (isFork) => {
 
 const mintPassesSetUp = async (mintPasses, scionAddress) => {
   await mintPasses.setScionAddress(scionAddress);
+
+  await mintPasses.setClassesWeightLimits(
+    [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
+    [
+      weightLimits[0].bottom,
+      weightLimits[1].bottom,
+      weightLimits[2].bottom,
+      weightLimits[3].bottom,
+      weightLimits[4].bottom,
+      weightLimits[5].bottom,
+    ],
+    [
+      weightLimits[0].top,
+      weightLimits[1].top,
+      weightLimits[2].top,
+      weightLimits[3].top,
+      weightLimits[4].top,
+      weightLimits[5].top,
+    ]
+  );
 };
 
 const assetSetUp = async (assetRegistry) => {

@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { args } = require("./helpers/arguments");
 const { assets } = require("./helpers/assets");
-const { classLimits } = require("./helpers/classLimits");
+const { Class, classLimits } = require("./helpers/classLimits");
 const { init } = require("./helpers/init");
 const { toBN, toWei, snapshot, restore, getTime, getCosts } = require("./helpers/utils");
 
@@ -14,16 +14,6 @@ describe("Scion", async () => {
   let user1, user2, user3, user4, user5, user6;
 
   const AUCTION_DURATION = 3 * 24 * 60; // 3 days (in minutes)
-
-  const BidClass = {
-    NONE: 0,
-    BRONZE: 1,
-    SILVER: 2,
-    GOLD: 3,
-    PLATINUM: 4,
-    RUBY: 5,
-    ONYX: 6,
-  };
 
   const ListOption = {
     ALL: 0,
@@ -83,8 +73,8 @@ describe("Scion", async () => {
     const time = await getTime();
     await mintPasses
       .connect(owner)
-      .setClasses(
-        [BidClass.BRONZE, BidClass.SILVER, BidClass.GOLD, BidClass.PLATINUM, BidClass.RUBY, BidClass.ONYX],
+      .setClassesBidValueLimits(
+        [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
         [
           classLimits[0].bottom,
           classLimits[1].bottom,
@@ -127,7 +117,7 @@ describe("Scion", async () => {
     await restore();
   });
 
-  describe("claimScion", async () => {
+  describe.only("claimScion", async () => {
     it("reverts if inexistant mintPass", async () => {
       const reason = "ERC721: owner query for nonexistent token";
 
@@ -170,6 +160,31 @@ describe("Scion", async () => {
       expect(tx6).to.changeTokenBalance(mintPasses, user2, -1);
       expect(tx6).to.changeTokenBalance(scion, user2, 1);
       expect(await scion.ownerOf(5)).to.equal(user2.address);
+
+      expect(await scion.getScionTotalWeight(0)).to.be.at.least(
+        (await mintPasses.classLimits(Class.BRONZE)).bottomWeight
+      );
+      expect(await scion.getScionTotalWeight(0)).to.be.below((await mintPasses.classLimits(Class.BRONZE)).topWeight);
+      expect(await scion.getScionTotalWeight(0)).to.be.at.least(
+        (await mintPasses.classLimits(Class.SILVER)).bottomWeight
+      );
+      expect(await scion.getScionTotalWeight(0)).to.be.below((await mintPasses.classLimits(Class.SILVER)).topWeight);
+      expect(await scion.getScionTotalWeight(0)).to.be.at.least(
+        (await mintPasses.classLimits(Class.GOLD)).bottomWeight
+      );
+      expect(await scion.getScionTotalWeight(0)).to.be.below((await mintPasses.classLimits(Class.GOLD)).topWeight);
+      expect(await scion.getScionTotalWeight(0)).to.be.at.least(
+        (await mintPasses.classLimits(Class.PLATINUM)).bottomWeight
+      );
+      expect(await scion.getScionTotalWeight(0)).to.be.below((await mintPasses.classLimits(Class.PLATINUM)).topWeight);
+      expect(await scion.getScionTotalWeight(0)).to.be.at.least(
+        (await mintPasses.classLimits(Class.RUBY)).bottomWeight
+      );
+      expect(await scion.getScionTotalWeight(0)).to.be.below((await mintPasses.classLimits(Class.RUBY)).topWeight);
+      expect(await scion.getScionTotalWeight(0)).to.be.at.least(
+        (await mintPasses.classLimits(Class.ONYX)).bottomWeight
+      );
+      expect(await scion.getScionTotalWeight(0)).to.be.below((await mintPasses.classLimits(Class.ONYX)).topWeight);
     });
     it("test rarity", async () => {
       // TODO
