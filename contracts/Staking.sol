@@ -22,12 +22,13 @@ contract Staking is ERC721Holder {
     uint256 totalStakers;
     uint256 constant deno = 100;
 
-    mapping(address => uint256[]) public stakedTokensByUser;
+    mapping(address => uint256[]) private stakedTokensByUser;
     mapping(uint256 => int256) public stakedTokensByUserIndexes;
 
     struct Staker {
         bool staked;
         uint256 block;
+        uint256 harvested;
     }
 
     mapping(address => mapping (uint256 => Staker)) public stakes;
@@ -41,15 +42,27 @@ contract Staking is ERC721Holder {
     event UnStake(address indexed owner, uint256 id, uint256 block, uint256 rewardTokens);
 
 
+    function getStakedTokenIdsByUser(address _user) public view returns(uint256[] memory) {
+        return stakedTokensByUser[_user];
+    }
+
     // @notice It will calculate the rate of the token reward
     // @dev It will block.timestamp to track the time.
     // @return Return the reward rate %
 
-
+    
     function calculateRewards(address _user, uint256 _tokenId) public view returns(uint256) {
         uint256 _blocksPassed = block.number - stakes[_user][_tokenId].block;
         
-        return _blocksPassed * rewardPerBlock / totalStakers;
+        return totalStakers == 0 ? 0 : _blocksPassed * rewardPerBlock / totalStakers - stakes[msg.sender][_tokenId].harvested;
+    }
+
+    function stakeNFTs(uint256[] memory _tokenIds) external {
+        require(_tokenIds.length <= 100, "Staking: Maximum amount of token ids exceeded");
+        
+        for(uint i; i < _tokenIds.length; i++) {
+             stakeNFT(_tokenIds[i]);
+        }
     }
 
     // @notice It will give user to stake the NFT.
@@ -59,13 +72,23 @@ contract Staking is ERC721Holder {
     function stakeNFT(uint256 _tokenId) public {
         require(NFTItem.ownerOf(_tokenId) == msg.sender, 'you dont own this token');
 
-        stakes[msg.sender][_tokenId] = Staker(true, block.number);
+        stakes[msg.sender][_tokenId] = Staker(true, block.number, 0);
         NFTItem.safeTransferFrom(msg.sender, address(this), _tokenId, "0x00");
 
         stakedTokensByUser[msg.sender].push(_tokenId);
         stakedTokensByUserIndexes[_tokenId] = int256(stakedTokensByUser[msg.sender].length - 1);
 
+        totalStakers++;
+
         emit Stake(msg.sender, _tokenId,  block.number);
+    }
+
+    function unStakeNFTs(uint256[] memory _tokenIds) external {
+        require(_tokenIds.length <= 100, "Staking: Maximum amount of token ids exceeded");
+
+        for(uint i; i < _tokenIds.length; i++) {
+             unStakeNFT(_tokenIds[i]);
+        }
     }
 
     // // @notice It will unstake the NFT and distribute the token reward.
@@ -85,7 +108,35 @@ contract Staking is ERC721Holder {
 
         stakedTokensByUserIndexes[_tokenId] = -1;
 
+        totalStakers--;
+
         emit UnStake(msg.sender, _tokenId,  block.number, reward);
     }
+
+    function harvestBatch(uint256[] memory _tokenIds) public {
+        require(_tokenIds.length <= 100, "Staking: Maximum amount of token ids exceeded");
+        uint rewards;
+        uint rewardPerToken;
+
+        for(uint i; i < _tokenIds.length; i++) {
+            require(stakes[msg.sender][_tokenIds[i]].staked, "Staking: No stake with this token id");
+            
+            rewardPerToken = calculateRewards(msg.sender, _tokenIds[i]);
+            rewards += rewardPerToken;
+
+            stakes[msg.sender][_tokenIds[i]].harvested += rewardPerToken;
+        }
+
+        token.safeTransfer(msg.sender, rewards);
+    }
+
+    function harvest(uint256 _tokenId) public {
+        require(stakes[msg.sender][_tokenId].staked, "Staking: No stake with this token id");
+        uint256 reward = calculateRewards(msg.sender, _tokenId) - stakes[msg.sender][_tokenId].harvested;
+        stakes[msg.sender][_tokenId].harvested += reward;
+
+        token.safeTransfer(msg.sender, reward);
+    }
+    
 
 }
