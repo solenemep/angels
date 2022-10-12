@@ -139,7 +139,12 @@ contract MintPasses is
     }
 
     modifier onlyInactive() {
-        require((block.timestamp >= start + auctionDuration), "Auction active");
+        require(block.timestamp >= start + auctionDuration, "Auction active");
+        _;
+    }
+
+    modifier onlyIfClassSet() {
+        require(classLimits[Class.BRONZE].topBidValue != 0, "Classes not set");
         _;
     }
 
@@ -372,12 +377,15 @@ contract MintPasses is
         );
     }
 
-    function cancelBid(uint256 bidIndex) external onlyInactive nonReentrant {
+    function cancelBid(uint256 bidIndex) external onlyInactive onlyIfClassSet nonReentrant {
         require(_msgSender() == bidInfos[bidIndex].bidder, "Not the owner of the bid");
+        require(!bidInfos[bidIndex].claimed, "Already cancelced or claimed");
         uint256 bidValue = bidInfos[bidIndex].bidValue;
 
         _allBids.remove(bidIndex);
         _ownedBids[_msgSender()].remove(bidIndex);
+
+        bidInfos[bidIndex].claimed = true;
 
         payable(_msgSender()).transfer(bidValue);
         emit BidCanceled(_msgSender(), bidValue, bidIndex, block.timestamp);
@@ -396,7 +404,12 @@ contract MintPasses is
         return super.supportsInterface(interfaceId);
     }
 
-    function claimPass(uint256[] memory bidIndexes) external onlyInactive nonReentrant {
+    function claimPass(uint256[] memory bidIndexes)
+        external
+        onlyInactive
+        onlyIfClassSet
+        nonReentrant
+    {
         require(bidIndexes.length <= 30, "Too much indexes");
         for (uint256 i = 0; i < bidIndexes.length; i++) {
             uint256 bidIndex = bidIndexes[i];
@@ -424,7 +437,7 @@ contract MintPasses is
         _promotionBeneficiaries.add(_beneficiary);
     }
 
-    function claimPromotionMintingPasses() public onlyInactive {
+    function claimPromotionMintingPasses() public onlyInactive onlyIfClassSet nonReentrant {
         require(_promotionBeneficiaries.contains(_msgSender()), "MintPasses: not beneficary");
 
         _promotionBeneficiaries.remove(_msgSender());

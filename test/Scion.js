@@ -117,7 +117,7 @@ describe("Scion", async () => {
     await restore();
   });
 
-  describe.only("claimScion", async () => {
+  describe("claimScion", async () => {
     it("reverts if inexistant mintPass", async () => {
       const reason = "ERC721: owner query for nonexistent token";
 
