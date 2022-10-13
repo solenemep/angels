@@ -857,8 +857,6 @@ describe("MintPasses", async () => {
       expect(ownedBidList[0].timestamp).to.equal(timeBid);
       expect(ownedBidList[0].class).to.equal(Class.BRONZE);
       expect(ownedBidList[0].claimed).to.equal(true);
-
-      // TODO test rarity generation
     });
     it("does not take action if inexistant bid", async () => {
       const timeBid = await getTime();
@@ -1278,8 +1276,6 @@ describe("MintPasses", async () => {
 
       expect(tx1).to.changeTokenBalance(mintPasses, user1, 1);
       expect(tx2).to.changeTokenBalance(mintPasses, user2, 1);
-
-      // TODO test rarity generation
     });
     it("emits PromotionPassClaimed", async () => {
       await mintPasses.connect(owner).finishAuction();

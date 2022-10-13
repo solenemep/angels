@@ -25,7 +25,7 @@ const weightLimits = [
   { bottom: 5, top: 2000 },
   { bottom: 1, top: 1500 },
   { bottom: 0, top: 1000 },
-  { bottom: 0, top: 8000 },
+  { bottom: 0, top: 800 },
 ];
 
 module.exports.Class = Class;

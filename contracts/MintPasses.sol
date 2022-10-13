@@ -62,8 +62,8 @@ contract MintPasses is
         uint256 bottomBidValue;
         uint256 topBidValue;
         uint256 timestamp;
-        uint256 bottomWeight;
-        uint256 topWeight;
+        uint256 bottomAssetWeight;
+        uint256 topAssetWeight;
     }
 
     struct BidInfo {
@@ -91,7 +91,7 @@ contract MintPasses is
     // bid related
     mapping(uint256 => BidInfo) public bidInfos; // bidIndex -> BidInfo
     EnumerableSet.UintSet internal _allBids; // bidIndexes
-    mapping(address => EnumerableSet.UintSet) internal _ownedBids; // user -> bidIndex
+    mapping(address => EnumerableSet.UintSet) internal _ownedBids; // user -> bidIndexes
 
     // promotion related
     EnumerableSet.AddressSet internal _promotionBeneficiaries;
@@ -286,24 +286,25 @@ contract MintPasses is
 
     function setClassesWeightLimits(
         Class[] memory _classes,
-        uint256[] memory _bottomWeights,
-        uint256[] memory _topWeights
+        uint256[] memory _bottomAssetWeights,
+        uint256[] memory _topAssetWeights
     ) public {
         require(
-            _classes.length == _bottomWeights.length && _bottomWeights.length == _topWeights.length
+            _classes.length == _bottomAssetWeights.length &&
+                _bottomAssetWeights.length == _topAssetWeights.length
         );
         for (uint256 i = 0; i < _classes.length; i++) {
-            setClassWeightLimit(_classes[i], _bottomWeights[i], _topWeights[i]);
+            setClassWeightLimit(_classes[i], _bottomAssetWeights[i], _topAssetWeights[i]);
         }
     }
 
     function setClassWeightLimit(
         Class _class,
-        uint256 _bottomWeight,
-        uint256 _topWeight
+        uint256 _bottomAssetWeight,
+        uint256 _topAssetWeight
     ) public onlyOwner {
-        classLimits[_class].bottomWeight = _bottomWeight;
-        classLimits[_class].topWeight = _topWeight;
+        classLimits[_class].bottomAssetWeight = _bottomAssetWeight;
+        classLimits[_class].topAssetWeight = _topAssetWeight;
     }
 
     function setTreasury(address _treasury) public onlyOwner {
@@ -455,10 +456,9 @@ contract MintPasses is
         newTokenId = _tokenIdTracker.current();
 
         if (isPromoted) {
-            // TODO generate mintPass rarity
+            // TODO need the class ?
             //requestRandomWords(newTokenId); // Sets the rarity // function revert
         } else {
-            // TODO generate mintPass rarity
             mintPassInfos[newTokenId].class = class;
             mintPassInfos[newTokenId].random = RandomGenerator.random(user, 1000, newTokenId);
         }
