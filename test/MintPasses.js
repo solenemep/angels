@@ -1044,7 +1044,7 @@ describe("MintPasses", async () => {
       const timeBid = await getTime();
       let bidValue = toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).plus(1).toString();
       await mintPasses.connect(user1).bid(bidsAmount, bidValue, {
-        value: value,
+        value: toBN(bidValue).times(bidsAmount).toString(),
       });
       expect((await mintPasses.getListBids(0, 1, 0, ZERO_ADDRESS))[0].class).to.equal(Class.NONE);
       await mintPasses.connect(owner).finishAuction();

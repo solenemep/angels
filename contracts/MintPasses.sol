@@ -342,7 +342,7 @@ contract MintPasses is
 
     function bid(uint256 bidsAmount, uint256 bidValue) external payable onlyActive nonReentrant {
         require(bidValue > minimumBidAmount, "Bid value must be bigger then minimum bid");
-        require(msg.value >= bidValue * bidsAmount, "There is not enough funds to make bids");
+        require(msg.value == bidValue * bidsAmount, "There is not enough funds to make bids");
         require(bidsAmount <= 30, "Too many bids during 1 transaction");
 
         for (uint256 i = 0; i < bidsAmount; i++) {
