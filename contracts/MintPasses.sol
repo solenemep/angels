@@ -164,6 +164,7 @@ contract MintPasses is
         bytes32 _keyHash
     )
         // TODO assert non empty treasury
+        // TODO assert non empty scionContract
         ERC721(name, symbol)
         MintPassRarityGenerator(subscriptionId, vrfCoordinator, link, _keyHash)
     {
