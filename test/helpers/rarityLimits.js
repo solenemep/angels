@@ -1,23 +1,22 @@
 const { toWei } = require("./utils");
 
-const NFTRarity = {
+const Rarity = {
   COMMON: 0,
   RARE: 1,
-  EPIC: 2,
-  EPIC_RARE: 3,
-  LENGENDARY: 4,
-  MYSTIC: 5,
-  EXTRA_CELESTIAL: 6,
+  EPIC_RARE: 2,
+  LENGENDARY: 3,
+  MYSTIC: 4,
+  EXTRA_CELESTIAL: 5,
 };
 
 const rarityLimits = [
-  { bottom: toWei("1"), top: toWei("100") },
-  { bottom: toWei("101"), top: toWei("150") },
-  { bottom: toWei("151"), top: toWei("170") },
-  { bottom: toWei("171"), top: toWei("186") },
-  { bottom: toWei("187"), top: toWei("196") },
-  { bottom: toWei("197"), top: toWei("200") },
+  { bottom: 15, top: 100 },
+  { bottom: 8, top: 15 },
+  { bottom: 5, top: 8 },
+  { bottom: 3, top: 5 },
+  { bottom: 1, top: 3 },
+  { bottom: 0, top: 1 },
 ];
 
-module.exports.NFTRarity = NFTRarity;
+module.exports.Rarity = Rarity;
 module.exports.rarityLimits = rarityLimits;

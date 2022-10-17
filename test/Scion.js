@@ -1,7 +1,6 @@
 const { expect } = require("chai");
 const { args } = require("./helpers/arguments");
-const { assets } = require("./helpers/assets");
-const { classLimits } = require("./helpers/classLimits");
+const { Class, classLimits } = require("./helpers/classLimits");
 const { init } = require("./helpers/init");
 const { toBN, toWei, snapshot, restore, getTime, getCosts } = require("./helpers/utils");
 
@@ -14,21 +13,6 @@ describe("Scion", async () => {
   let user1, user2, user3, user4, user5, user6;
 
   const AUCTION_DURATION = 3 * 24 * 60; // 3 days (in minutes)
-
-  const BidClass = {
-    NONE: 0,
-    BRONZE: 1,
-    SILVER: 2,
-    GOLD: 3,
-    PLATINUM: 4,
-    RUBY: 5,
-    ONYX: 6,
-  };
-
-  const ListOption = {
-    ALL: 0,
-    OWNED: 1,
-  };
 
   const bidValues = [
     toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(2).toString(),
@@ -83,8 +67,8 @@ describe("Scion", async () => {
     const time = await getTime();
     await mintPasses
       .connect(owner)
-      .setClasses(
-        [BidClass.BRONZE, BidClass.SILVER, BidClass.GOLD, BidClass.PLATINUM, BidClass.RUBY, BidClass.ONYX],
+      .setClassesBidValueLimits(
+        [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
         [
           classLimits[0].bottom,
           classLimits[1].bottom,
@@ -114,11 +98,22 @@ describe("Scion", async () => {
     await mintPasses.connect(user6).claimPass([6]);
 
     expect(await mintPasses.balanceOf(user1.address)).to.equal(1);
+    expect((await mintPasses.mintPassInfos(0)).class).to.equal(Class.BRONZE);
+
     expect(await mintPasses.balanceOf(user2.address)).to.equal(1);
+    expect((await mintPasses.mintPassInfos(1)).class).to.equal(Class.SILVER);
+
     expect(await mintPasses.balanceOf(user3.address)).to.equal(1);
+    expect((await mintPasses.mintPassInfos(2)).class).to.equal(Class.GOLD);
+
     expect(await mintPasses.balanceOf(user4.address)).to.equal(1);
+    expect((await mintPasses.mintPassInfos(3)).class).to.equal(Class.PLATINUM);
+
     expect(await mintPasses.balanceOf(user5.address)).to.equal(1);
+    expect((await mintPasses.mintPassInfos(4)).class).to.equal(Class.RUBY);
+
     expect(await mintPasses.balanceOf(user6.address)).to.equal(1);
+    expect((await mintPasses.mintPassInfos(5)).class).to.equal(Class.ONYX);
 
     await snapshot();
   });
@@ -172,7 +167,49 @@ describe("Scion", async () => {
       expect(await scion.ownerOf(5)).to.equal(user2.address);
     });
     it("test rarity", async () => {
-      // TODO
+      await scion.connect(user1).claimScion(0);
+      await scion.connect(user2).claimScion(1);
+      await scion.connect(user3).claimScion(2);
+      await scion.connect(user4).claimScion(3);
+      await scion.connect(user5).claimScion(4);
+      await scion.connect(user6).claimScion(5);
+
+      const scion1 = await scion.scionsData(0);
+      const scion2 = await scion.scionsData(1);
+      const scion3 = await scion.scionsData(2);
+      const scion4 = await scion.scionsData(3);
+      const scion5 = await scion.scionsData(4);
+      const scion6 = await scion.scionsData(5);
+
+      for (let i = 0; i < scion1.length; i++) {
+        expect(scion1[i].weight).to.be.at.least((await mintPasses.classLimits(Class.BRONZE)).bottomAssetWeight);
+        expect(scion1[i].weight).to.be.at.most((await mintPasses.classLimits(Class.BRONZE)).topAssetWeight);
+      }
+
+      for (let i = 0; i < scion1.length; i++) {
+        expect(scion2[i].weight).to.be.at.least((await mintPasses.classLimits(Class.SILVER)).bottomAssetWeight);
+        expect(scion2[i].weight).to.be.at.most((await mintPasses.classLimits(Class.SILVER)).topAssetWeight);
+      }
+
+      for (let i = 0; i < scion1.length; i++) {
+        expect(scion3[i].weight).to.be.at.least((await mintPasses.classLimits(Class.GOLD)).bottomAssetWeight);
+        expect(scion3[i].weight).to.be.at.most((await mintPasses.classLimits(Class.GOLD)).topAssetWeight);
+      }
+
+      for (let i = 0; i < scion1.length; i++) {
+        expect(scion4[i].weight).to.be.at.least((await mintPasses.classLimits(Class.PLATINUM)).bottomAssetWeight);
+        expect(scion4[i].weight).to.be.at.most((await mintPasses.classLimits(Class.PLATINUM)).topAssetWeight);
+      }
+
+      for (let i = 0; i < scion1.length; i++) {
+        expect(scion5[i].weight).to.be.at.least((await mintPasses.classLimits(Class.RUBY)).bottomAssetWeight);
+        expect(scion5[i].weight).to.be.at.most((await mintPasses.classLimits(Class.RUBY)).topAssetWeight);
+      }
+
+      for (let i = 0; i < scion6.length; i++) {
+        expect(scion6[i].weight).to.be.at.least((await mintPasses.classLimits(Class.ONYX)).bottomAssetWeight);
+        expect(scion6[i].weight).to.be.at.most((await mintPasses.classLimits(Class.ONYX)).topAssetWeight);
+      }
     });
     it("emits ScionClaimed", async () => {
       await expect(scion.connect(user1).claimScion(0))
@@ -282,18 +319,6 @@ describe("Scion", async () => {
   describe("use case", async () => {});
 
   describe.skip("get fees", async () => {
-    it("setAssets", async () => {
-      for (const asset of assets) {
-        const tx = await assetRegistry.setAssets(
-          asset.assetId,
-          asset.assets,
-          asset.weigthSum,
-          asset.weigths,
-          asset.names
-        );
-        await getCosts(tx);
-      }
-    });
     it("claimScion", async () => {
       const tx = await scion.connect(user1).claimScion(0);
       await getCosts(tx);

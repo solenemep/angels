@@ -1,12 +1,13 @@
 const { ethers } = require("hardhat");
 const { args } = require("./arguments");
 const { assets } = require("./assets");
+const { weightLimits, Class } = require("./classLimits");
 
 const addresses = {
   goerli: {
     // --network goerli
     randomGeneratorAddress: "",
-    assetRegistryAddress: "0xdff85d705D995E52f38a277E71141063c7d6B854",
+    assetsRegistryAddress: "0xdff85d705D995E52f38a277E71141063c7d6B854",
     keterAddress: "0xB561F45E4A3B146c8797ee5B59B097E0AC58f72e",
     soulAddress: "0xcd7490578d7c3b667864AE07A28598cABe141FDF",
     archangelAddress: "0xec6C448d425B8F63458A149043C60F596579AB84",
@@ -22,7 +23,7 @@ const init = async (isFork) => {
   const users = await ethers.getSigners();
 
   let randomGenerator;
-  let assetRegistry;
+  let assetsRegistry;
   let keter;
   let soul;
   let archangel;
@@ -37,8 +38,8 @@ const init = async (isFork) => {
     await randomGenerator.deployed();
 
     // Registry
-    const AssetRegistry = await ethers.getContractFactory("AssetsRegistry");
-    assetRegistry = await AssetRegistry.attach(addresses[network].assetRegistryAddress);
+    const AssetsRegistry = await ethers.getContractFactory("AssetsRegistry");
+    assetsRegistry = await AssetsRegistry.attach(addresses[network].assetsRegistryAddress);
 
     // ERC20
     const Keter = await ethers.getContractFactory("Keter");
@@ -74,9 +75,9 @@ const init = async (isFork) => {
     await randomGenerator.deployed();
 
     // Registry
-    const AssetRegistry = await ethers.getContractFactory("AssetsRegistry");
-    assetRegistry = await AssetRegistry.deploy();
-    await assetRegistry.deployed();
+    const AssetsRegistry = await ethers.getContractFactory("AssetsRegistry");
+    assetsRegistry = await AssetsRegistry.deploy();
+    await assetsRegistry.deployed();
 
     // ERC20
     const Keter = await ethers.getContractFactory("Keter");
@@ -120,7 +121,7 @@ const init = async (isFork) => {
       mintPasses.address,
       soul.address,
       keter.address,
-      assetRegistry.address,
+      assetsRegistry.address,
       args.SCION_NAME,
       args.SCION_SYMBOL,
       args.SCION_BASE_TOKEN_URI,
@@ -136,13 +137,13 @@ const init = async (isFork) => {
     await staking.deployed();
 
     await mintPassesSetUp(mintPasses, scion.address);
-    await assetSetUp(assetRegistry);
+    await assetSetUp(assetsRegistry);
   }
 
   return {
     users,
     randomGenerator,
-    assetRegistry,
+    assetsRegistry,
     keter,
     soul,
     archangel,
@@ -154,11 +155,31 @@ const init = async (isFork) => {
 
 const mintPassesSetUp = async (mintPasses, scionAddress) => {
   await mintPasses.setScionAddress(scionAddress);
+
+  await mintPasses.setClassesWeightLimits(
+    [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
+    [
+      weightLimits[0].bottom,
+      weightLimits[1].bottom,
+      weightLimits[2].bottom,
+      weightLimits[3].bottom,
+      weightLimits[4].bottom,
+      weightLimits[5].bottom,
+    ],
+    [
+      weightLimits[0].top,
+      weightLimits[1].top,
+      weightLimits[2].top,
+      weightLimits[3].top,
+      weightLimits[4].top,
+      weightLimits[5].top,
+    ]
+  );
 };
 
-const assetSetUp = async (assetRegistry) => {
+const assetSetUp = async (assetsRegistry) => {
   for (const asset of assets) {
-    await assetRegistry.setAssets(asset.assetId, asset.assets, asset.weigthSum, asset.weigths, asset.names);
+    await assetsRegistry.setAssets(asset.assetId, asset.assets, asset.weigths, asset.names);
   }
 };
 

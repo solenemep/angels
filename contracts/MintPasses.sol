@@ -48,7 +48,7 @@ contract MintPasses is
     address public scionContract;
     address public treasury;
 
-    enum BidClass {
+    enum Class {
         NONE,
         BRONZE,
         SILVER,
@@ -58,10 +58,12 @@ contract MintPasses is
         ONYX
     }
 
-    struct Class {
-        uint256 bottom;
-        uint256 top;
+    struct ClassLimits {
+        uint256 bottomBidValue;
+        uint256 topBidValue;
         uint256 timestamp;
+        uint256 bottomAssetWeight;
+        uint256 topAssetWeight;
     }
 
     struct BidInfo {
@@ -69,8 +71,13 @@ contract MintPasses is
         address bidder;
         uint256 bidValue;
         uint256 timestamp;
-        BidClass class;
+        Class class;
         bool claimed;
+    }
+
+    struct MintPassInfo {
+        Class class;
+        uint256 random;
     }
 
     enum ListOption {
@@ -79,18 +86,18 @@ contract MintPasses is
     }
 
     // class related
-    mapping(BidClass => Class) public classes;
+    mapping(Class => ClassLimits) public classLimits;
 
     // bid related
     mapping(uint256 => BidInfo) public bidInfos; // bidIndex -> BidInfo
     EnumerableSet.UintSet internal _allBids; // bidIndexes
-    mapping(address => EnumerableSet.UintSet) internal _ownedBids; // user -> bidIndex
-
-    // mintPass related
-    mapping(uint256 => uint256) public mintingPassRandom; // mintpass -> random
+    mapping(address => EnumerableSet.UintSet) internal _ownedBids; // user -> bidIndexes
 
     // promotion related
     EnumerableSet.AddressSet internal _promotionBeneficiaries;
+
+    // mintPass related
+    mapping(uint256 => MintPassInfo) public mintPassInfos; // mintPassId -> MintPassInfo
 
     event BidPlaced(
         address indexed bidder,
@@ -132,7 +139,12 @@ contract MintPasses is
     }
 
     modifier onlyInactive() {
-        require((block.timestamp >= start + auctionDuration), "Auction active");
+        require(block.timestamp >= start + auctionDuration, "Auction active");
+        _;
+    }
+
+    modifier onlyIfClassSet() {
+        require(classLimits[Class.BRONZE].topBidValue != 0, "Classes not set");
         _;
     }
 
@@ -210,28 +222,28 @@ contract MintPasses is
         bidPublicInfo.class = _getBidClass(bidIndex);
     }
 
-    function _getBidClass(uint256 _bidIndex) internal view returns (BidClass bidClass) {
+    function _getBidClass(uint256 _bidIndex) internal view returns (Class bidClass) {
         uint256 bidValue = bidInfos[_bidIndex].bidValue;
 
-        if (bidValue < classes[BidClass.BRONZE].bottom) {
-            bidClass = BidClass.NONE;
-        } else if (bidValue < classes[BidClass.BRONZE].top) {
-            bidClass = BidClass.BRONZE;
-        } else if (bidValue < classes[BidClass.SILVER].top) {
-            bidClass = BidClass.SILVER;
-        } else if (bidValue < classes[BidClass.GOLD].top) {
-            bidClass = BidClass.GOLD;
-        } else if (bidValue < classes[BidClass.PLATINUM].top) {
-            bidClass = BidClass.PLATINUM;
-        } else if (bidValue < classes[BidClass.RUBY].top) {
-            bidClass = BidClass.RUBY;
-        } else if (bidValue < classes[BidClass.ONYX].top) {
-            bidClass = BidClass.ONYX;
+        if (bidValue < classLimits[Class.BRONZE].bottomBidValue) {
+            bidClass = Class.NONE;
+        } else if (bidValue < classLimits[Class.BRONZE].topBidValue) {
+            bidClass = Class.BRONZE;
+        } else if (bidValue < classLimits[Class.SILVER].topBidValue) {
+            bidClass = Class.SILVER;
+        } else if (bidValue < classLimits[Class.GOLD].topBidValue) {
+            bidClass = Class.GOLD;
+        } else if (bidValue < classLimits[Class.PLATINUM].topBidValue) {
+            bidClass = Class.PLATINUM;
+        } else if (bidValue < classLimits[Class.RUBY].topBidValue) {
+            bidClass = Class.RUBY;
+        } else if (bidValue < classLimits[Class.ONYX].topBidValue) {
+            bidClass = Class.ONYX;
         }
     }
 
-    function getBidsClasses() public view returns (BidClass[] memory) {
-        BidClass[] memory result = new BidClass[](_ownedBids[_msgSender()].length());
+    function getBidsClasses() public view returns (Class[] memory) {
+        Class[] memory result = new Class[](_ownedBids[_msgSender()].length());
 
         for (uint256 i = 0; i < _ownedBids[_msgSender()].length(); i++) {
             result[i] = _getBidClass(_ownedBids[_msgSender()].at(i));
@@ -240,29 +252,59 @@ contract MintPasses is
         return result;
     }
 
-    function setClasses(
-        BidClass[] memory _bidClasses,
-        uint256[] memory _bottom,
-        uint256[] memory _top,
-        uint256[] memory _timestamp
+    function setClassesBidValueLimits(
+        Class[] memory _classes,
+        uint256[] memory _bottomBidValues,
+        uint256[] memory _topBidValues,
+        uint256[] memory _timestamps
     ) public {
         require(
-            _bidClasses.length == _bottom.length &&
-                _bottom.length == _top.length &&
-                _top.length == _timestamp.length
+            _classes.length == _bottomBidValues.length &&
+                _bottomBidValues.length == _topBidValues.length &&
+                _topBidValues.length == _timestamps.length
         );
-        for (uint256 i = 0; i < _bidClasses.length; i++) {
-            setClass(_bidClasses[i], _bottom[i], _top[i], _timestamp[i]);
+        for (uint256 i = 0; i < _classes.length; i++) {
+            setClassBidValueLimit(
+                _classes[i],
+                _bottomBidValues[i],
+                _topBidValues[i],
+                _timestamps[i]
+            );
         }
     }
 
-    function setClass(
-        BidClass _bidClass,
-        uint256 _bottom,
-        uint256 _top,
+    function setClassBidValueLimit(
+        Class _class,
+        uint256 _bottomBidValue,
+        uint256 _topBidValue,
         uint256 _timestamp
     ) public onlyOwner onlyInactive {
-        classes[_bidClass] = Class(_bottom, _top, _timestamp);
+        classLimits[_class].bottomBidValue = _bottomBidValue;
+        classLimits[_class].topBidValue = _topBidValue;
+        classLimits[_class].timestamp = _timestamp;
+    }
+
+    function setClassesWeightLimits(
+        Class[] memory _classes,
+        uint256[] memory _bottomAssetWeights,
+        uint256[] memory _topAssetWeights
+    ) public {
+        require(
+            _classes.length == _bottomAssetWeights.length &&
+                _bottomAssetWeights.length == _topAssetWeights.length
+        );
+        for (uint256 i = 0; i < _classes.length; i++) {
+            setClassWeightLimit(_classes[i], _bottomAssetWeights[i], _topAssetWeights[i]);
+        }
+    }
+
+    function setClassWeightLimit(
+        Class _class,
+        uint256 _bottomAssetWeight,
+        uint256 _topAssetWeight
+    ) public onlyOwner {
+        classLimits[_class].bottomAssetWeight = _bottomAssetWeight;
+        classLimits[_class].topAssetWeight = _topAssetWeight;
     }
 
     function setTreasury(address _treasury) public onlyOwner {
@@ -300,7 +342,7 @@ contract MintPasses is
 
     function bid(uint256 bidsAmount, uint256 bidValue) external payable onlyActive nonReentrant {
         require(bidValue > minimumBidAmount, "Bid value must be bigger then minimum bid");
-        require(msg.value >= bidValue * bidsAmount, "There is not enough funds to make bids");
+        require(msg.value == bidValue * bidsAmount, "There is not enough funds to make bids");
         require(bidsAmount <= 30, "Too many bids during 1 transaction");
 
         for (uint256 i = 0; i < bidsAmount; i++) {
@@ -336,12 +378,15 @@ contract MintPasses is
         );
     }
 
-    function cancelBid(uint256 bidIndex) external onlyInactive nonReentrant {
+    function cancelBid(uint256 bidIndex) external onlyInactive onlyIfClassSet nonReentrant {
         require(_msgSender() == bidInfos[bidIndex].bidder, "Not the owner of the bid");
+        require(!bidInfos[bidIndex].claimed, "Already cancelced or claimed");
         uint256 bidValue = bidInfos[bidIndex].bidValue;
 
         _allBids.remove(bidIndex);
         _ownedBids[_msgSender()].remove(bidIndex);
+
+        bidInfos[bidIndex].claimed = true;
 
         payable(_msgSender()).transfer(bidValue);
         emit BidCanceled(_msgSender(), bidValue, bidIndex, block.timestamp);
@@ -360,22 +405,28 @@ contract MintPasses is
         return super.supportsInterface(interfaceId);
     }
 
-    function claimPass(uint256[] memory bidIndexes) external onlyInactive nonReentrant {
+    function claimPass(uint256[] memory bidIndexes)
+        external
+        onlyInactive
+        onlyIfClassSet
+        nonReentrant
+    {
         require(bidIndexes.length <= 30, "Too much indexes");
         for (uint256 i = 0; i < bidIndexes.length; i++) {
             uint256 bidIndex = bidIndexes[i];
+            Class class = _getBidClass(bidIndex);
 
             /// @dev no use of require to avoid revert for all transaction
             /// @dev not checking bidValue > 0 as cannot bid with bidValue < minimumBidAmount
             if (
                 bidInfos[bidIndex].bidder == _msgSender() &&
                 !bidInfos[bidIndex].claimed &&
-                _getBidClass(bidIndex) != BidClass.NONE
+                class != Class.NONE
             ) {
                 payable(treasury).transfer(bidInfos[bidIndex].bidValue);
                 bidInfos[bidIndex].claimed = true;
 
-                uint256 tokenId = _mintMintPass(_msgSender(), false);
+                uint256 tokenId = _mintMintPass(_msgSender(), class, false);
 
                 emit PassClaimed(_msgSender(), tokenId, bidIndex, block.timestamp);
             }
@@ -387,25 +438,29 @@ contract MintPasses is
         _promotionBeneficiaries.add(_beneficiary);
     }
 
-    function claimPromotionMintingPasses() public onlyInactive {
+    function claimPromotionMintingPasses() public onlyInactive onlyIfClassSet nonReentrant {
         require(_promotionBeneficiaries.contains(_msgSender()), "MintPasses: not beneficary");
 
         _promotionBeneficiaries.remove(_msgSender());
 
-        uint256 tokenId = _mintMintPass(_msgSender(), true);
+        uint256 tokenId = _mintMintPass(_msgSender(), Class.NONE, true);
 
         emit PromotionPassClaimed(_msgSender(), tokenId, block.timestamp);
     }
 
-    function _mintMintPass(address user, bool isPromoted) internal returns (uint256 newTokenId) {
+    function _mintMintPass(
+        address user,
+        Class class,
+        bool isPromoted
+    ) internal returns (uint256 newTokenId) {
         newTokenId = _tokenIdTracker.current();
 
         if (isPromoted) {
-            // TODO generate mintPass rarity
+            // TODO need the class ?
             //requestRandomWords(newTokenId); // Sets the rarity // function revert
         } else {
-            // TODO generate mintPass rarity
-            mintingPassRandom[newTokenId] = RandomGenerator.random(user, 1000, newTokenId);
+            mintPassInfos[newTokenId].class = class;
+            mintPassInfos[newTokenId].random = RandomGenerator.random(user, 1000, newTokenId);
         }
 
         _safeMint(user, newTokenId);
