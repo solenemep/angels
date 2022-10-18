@@ -67,13 +67,13 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
         public
         view
         override
-        returns (AssetInfo[] memory assetIndexesPerType)
+        returns (AssetInfo[] memory assetsPerType)
     {
         uint256 count = _allAssets[_assetId].length();
-        assetIndexesPerType = new AssetInfo[](count);
+        assetsPerType = new AssetInfo[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 assetIndex = _allAssets[_assetId].at(i);
-            assetIndexesPerType[i] = assetInfos[_assetId][assetIndex];
+            assetsPerType[i] = assetInfos[_assetId][assetIndex];
         }
     }
 
@@ -81,13 +81,13 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
         public
         view
         override
-        returns (AssetInfo[] memory assetIndexesPerTypePerWeight)
+        returns (AssetInfo[] memory assetsPerTypePerWeight)
     {
         uint256 count = _assetsPerWeight[_assetId][_weight].length();
-        assetIndexesPerTypePerWeight = new AssetInfo[](count);
+        assetsPerTypePerWeight = new AssetInfo[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 assetIndex = _assetsPerWeight[_assetId][_weight].at(i);
-            assetIndexesPerTypePerWeight[i] = assetInfos[_assetId][assetIndex];
+            assetsPerTypePerWeight[i] = assetInfos[_assetId][assetIndex];
         }
     }
 
@@ -95,7 +95,7 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
         uint256 _assetId,
         uint256 _minWeight,
         uint256 _maxWeight
-    ) public view override returns (AssetInfo[] memory assetIndexesPerTypePerWeightRange) {
+    ) public view override returns (AssetInfo[] memory assetsPerTypePerWeightRange) {
         uint256[] memory weightsPerType = assetsUniqueWeights[_assetId];
 
         uint256 count;
@@ -105,7 +105,7 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
             }
         }
 
-        assetIndexesPerTypePerWeightRange = new AssetInfo[](count);
+        assetsPerTypePerWeightRange = new AssetInfo[](count);
         uint256 index = 0;
         for (uint256 i = 0; i < weightsPerType.length; i++) {
             if (_minWeight <= weightsPerType[i] && weightsPerType[i] <= _maxWeight) {
@@ -115,7 +115,7 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
                     j++
                 ) {
                     uint256 assetIndex = _assetsPerWeight[_assetId][weightsPerType[i]].at(j);
-                    assetIndexesPerTypePerWeightRange[index] = assetInfos[_assetId][assetIndex];
+                    assetsPerTypePerWeightRange[index] = assetInfos[_assetId][assetIndex];
                     index++;
                 }
             }
