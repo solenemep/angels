@@ -26,14 +26,25 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const MintPasses = await hre.ethers.getContractFactory("MintPasses");
+  // const RandomGenerator = await hre.ethers.getContractFactory("RandomGenerator");
+
+  // const randomGenerator = await RandomGenerator.deploy();
+  // await randomGenerator.deployed();
+
+  // console.log("MiRandomGeneratorntPasses address:", randomGenerator.address);
+
+  const MintPasses = await hre.ethers.getContractFactory("MintPasses", {
+    libraries: {
+      RandomGenerator: "0x6584E124984b34BA95d259008a286a011E9e7b12",
+    },
+  });
+
   const mintPasses = await MintPasses.deploy(
     args.MINT_PASS_NAME,
     args.MINT_PASS_SYMBOL,
     args.MINT_PASS_BASE_TOKEN_URI,
     args.MINT_PASS_TOTAL_BIDS_LIMIT,
     args.MINT_PASS_MINIMUM_BID_AMOUNT,
-    args.MINT_PASS_START,
     args.MINT_PASS_AUCTION_DURATION,
     args.SUBSCRIPTION_ID,
     args.VRF_COORDINATOR_ADDRESS,
@@ -66,10 +77,9 @@ async function main() {
 
   await wait(30_000);
 
-  let tx: ContractTransaction = await assetRegistry.setAssets(
+  let tx = await assetRegistry.setAssets(
     0,
     ["BGND001", "BGND002", "BGND005", "BGND004", "BGND006", "BGND003"],
-    [1000, 1250, 1500, 1600, 1700, 1710],
     [1000, 250, 250, 100, 100, 10],
     [
       "Cumulus Sky",
@@ -108,10 +118,6 @@ async function main() {
       "HALO020",
     ],
     [
-      1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8250, 8500, 8750, 9000,
-      9250, 9350, 9450, 9550, 9560, 9570, 9580, 9590,
-    ],
-    [
       1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 250, 250, 250, 250, 250,
       100, 100, 100, 10, 10, 10, 10,
     ],
@@ -136,42 +142,6 @@ async function main() {
       "Decending Wedge",
       "Cube of Metatron",
       "Shattered Pride",
-    ]
-  );
-
-  await tx.wait();
-
-  tx = await assetRegistry.setAssets(
-    4,
-    [
-      "WING000",
-      "WING001",
-      "WING002",
-      "WING003",
-      "WING004",
-      "WING005",
-      "WING006",
-      "WING007",
-      "WING008",
-      "WING009",
-      "WING010",
-      "WING011",
-    ],
-    [2000, 2010, 2020, 2030, 2040, 2050, 2060, 2070, 2080, 2090, 2100, 2110],
-    [2000, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-    [
-      "No Wings",
-      "Night Wings",
-      "Verdant Wings",
-      "Flowing Wings",
-      "Falling Wings",
-      "Dark Falling Wings",
-      "Ultra Sound Wings",
-      "Void Tendrals",
-      "Streaming Wings",
-      "Geometric Extrusions",
-      "Chitinous Appendages",
-      "Gothic Wings",
     ]
   );
 
@@ -222,12 +192,6 @@ async function main() {
       "HEAD024",
       "HEAD031",
       "HEAD033",
-    ],
-    [
-      1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000,
-      13000, 14000, 14250, 14500, 14750, 15000, 15250, 15500, 15750, 16000,
-      16250, 16500, 16750, 17000, 17250, 17500, 17750, 18000, 18250, 18350,
-      18450, 18550, 18650, 18750, 18850, 18860, 18870, 18880, 18890, 18900,
     ],
     [
       1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -317,11 +281,6 @@ async function main() {
       "BODY019",
     ],
     [
-      1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8250, 8500, 8750, 9000,
-      9250, 9500, 9750, 10000, 10250, 10500, 10750, 11000, 11250, 11350, 11450,
-      11550, 11650, 11750, 11850, 11950, 12050, 12150,
-    ],
-    [
       1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 250, 250, 250, 250, 250,
       250, 250, 250, 250, 250, 250, 250, 250, 100, 100, 100, 100, 100, 100, 100,
       100, 100,
@@ -363,6 +322,41 @@ async function main() {
   await tx.wait();
 
   tx = await assetRegistry.setAssets(
+    4,
+    [
+      "WING000",
+      "WING001",
+      "WING002",
+      "WING003",
+      "WING004",
+      "WING005",
+      "WING006",
+      "WING007",
+      "WING008",
+      "WING009",
+      "WING010",
+      "WING011",
+    ],
+    [2000, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+    [
+      "No Wings",
+      "Night Wings",
+      "Verdant Wings",
+      "Flowing Wings",
+      "Falling Wings",
+      "Dark Falling Wings",
+      "Ultra Sound Wings",
+      "Void Tendrals",
+      "Streaming Wings",
+      "Geometric Extrusions",
+      "Chitinous Appendages",
+      "Gothic Wings",
+    ]
+  );
+
+  await tx.wait();
+
+  tx = await assetRegistry.setAssets(
     5,
     [
       "HAND000",
@@ -384,10 +378,6 @@ async function main() {
       "HAND014",
       "HAND015",
       "HAND016",
-    ],
-    [
-      1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 1910, 1920,
-      1930, 1940, 1950, 1960, 1970, 1980, 1990,
     ],
     [
       1000, 100, 100, 100, 100, 100, 100, 100, 100, 100, 10, 10, 10, 10, 10, 10,
@@ -435,10 +425,6 @@ async function main() {
       "SIGL010",
       "SIGL011",
     ],
-    [
-      1000, 1100, 1200, 1300, 1400, 1500, 1510, 1520, 1530, 1540, 1550, 1560,
-      1570,
-    ],
     [1000, 100, 100, 100, 100, 100, 10, 10, 10, 10, 10, 10, 10],
     [
       "No Sigil",
@@ -461,7 +447,12 @@ async function main() {
 
   /***********************   SCIONS *******************************************/
 
-  const Scion = await hre.ethers.getContractFactory("Scion");
+  const Scion = await hre.ethers.getContractFactory("Scion", {
+    libraries: {
+      RandomGenerator: "0x6584E124984b34BA95d259008a286a011E9e7b12",
+    },
+  });
+
   const scion = await Scion.deploy(
     mintPasses.address,
     soul.address,
@@ -502,7 +493,9 @@ async function main() {
     "MintPasses",
     mintPasses.address,
     hre.network.name,
-    `${args.MINT_PASS_NAME} ${args.MINT_PASS_SYMBOL} ${args.MINT_PASS_BASE_TOKEN_URI} ${args.MINT_PASS_TOTAL_BIDS_LIMIT} ${args.MINT_PASS_MINIMUM_BID_AMOUNT} ${args.MINT_PASS_START} ${args.MINT_PASS_AUCTION_DURATION} ${args.SUBSCRIPTION_ID} ${args.VRF_COORDINATOR_ADDRESS} ${args.LINK_TOKEN_ADDRESS} ${args.VRF_KEY_HASH}`
+    `${args.MINT_PASS_NAME} ${args.MINT_PASS_SYMBOL} ${args.MINT_PASS_BASE_TOKEN_URI} ${args.MINT_PASS_TOTAL_BIDS_LIMIT} ${args.MINT_PASS_MINIMUM_BID_AMOUNT} ${args.MINT_PASS_AUCTION_DURATION} ${args.SUBSCRIPTION_ID} ${args.VRF_COORDINATOR_ADDRESS} ${args.LINK_TOKEN_ADDRESS} ${args.VRF_KEY_HASH}`,
+    true,
+    "scripts/libraries.ts"
   );
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
@@ -513,7 +506,9 @@ async function main() {
     "Soul",
     soul.address,
     hre.network.name,
-    `${args.SOUL_NAME} ${args.SOUL_SYMBOL}`
+    `${args.SOUL_NAME} ${args.SOUL_SYMBOL}`,
+    false,
+    ""
   );
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
@@ -524,7 +519,9 @@ async function main() {
     "Keter",
     keter.address,
     hre.network.name,
-    ``
+    ``,
+    false,
+    ""
   );
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
@@ -535,7 +532,9 @@ async function main() {
     "AssetsRegistry",
     assetRegistry.address,
     hre.network.name,
-    ``
+    ``,
+    false,
+    ""
   );
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
@@ -546,7 +545,9 @@ async function main() {
     "Scion",
     scion.address,
     hre.network.name,
-    `${mintPasses.address} ${soul.address} ${keter.address} ${assetRegistry.address} ${args.SCION_NAME} ${args.SCION_SYMBOL} ${args.SCION_BASE_TOKEN_URI} ${args.DOWNGRADE} ${args.SAME_WEIGHT} ${args.RARITY_PLUS}`
+    `${mintPasses.address} ${soul.address} ${keter.address} ${assetRegistry.address} ${args.SCION_NAME} ${args.SCION_SYMBOL} ${args.SCION_BASE_TOKEN_URI} ${args.DOWNGRADE} ${args.SAME_WEIGHT} ${args.RARITY_PLUS}`,
+    true,
+    "scripts/libraries.ts",
   );
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
@@ -557,7 +558,9 @@ async function main() {
     "Archangel",
     archangel.address,
     hre.network.name,
-    `${soul.address}`
+    `${soul.address}`,
+    false,
+    ""
   );
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
@@ -568,7 +571,9 @@ async function main() {
     "Staking",
     staking.address,
     hre.network.name,
-    `${keter.address} ${scion.address}`
+    `${keter.address} ${scion.address}`,
+    false,
+    ""
   );
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
