@@ -59,7 +59,8 @@ module.exports = {
     },
     polygon: {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
-      accounts: accountsTestnet,
+      accounts: accountsMainnet,
+      gasPrice: 180000000000
     },
     mumbai: {
       url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_KEY}`,
