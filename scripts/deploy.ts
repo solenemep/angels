@@ -26,16 +26,15 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  // const RandomGenerator = await hre.ethers.getContractFactory("RandomGenerator");
+  const RandomGenerator = await hre.ethers.getContractFactory("RandomGenerator");
+  const randomGenerator = await RandomGenerator.deploy();
+  await randomGenerator.deployed();
 
-  // const randomGenerator = await RandomGenerator.deploy();
-  // await randomGenerator.deployed();
-
-  // console.log("MiRandomGeneratorntPasses address:", randomGenerator.address);
+  console.log("RandomGenerator address:", randomGenerator.address);
 
   const MintPasses = await hre.ethers.getContractFactory("MintPasses", {
     libraries: {
-      RandomGenerator: "0x6584E124984b34BA95d259008a286a011E9e7b12",
+      RandomGenerator: randomGenerator.address,
     },
   });
 
@@ -449,7 +448,7 @@ async function main() {
 
   const Scion = await hre.ethers.getContractFactory("Scion", {
     libraries: {
-      RandomGenerator: "0x6584E124984b34BA95d259008a286a011E9e7b12",
+      RandomGenerator: randomGenerator.address,
     },
   });
 
