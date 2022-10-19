@@ -104,11 +104,7 @@ const init = async (isFork) => {
       args.MINT_PASS_BASE_TOKEN_URI,
       args.MINT_PASS_TOTAL_BIDS_LIMIT,
       args.MINT_PASS_MINIMUM_BID_AMOUNT,
-      args.MINT_PASS_AUCTION_DURATION,
-      args.SUBSCRIPTION_ID,
-      args.VRF_COORDINATOR_ADDRESS,
-      args.LINK_TOKEN_ADDRESS,
-      args.VRF_KEY_HASH
+      args.MINT_PASS_AUCTION_DURATION
     );
     await mintPasses.deployed();
 

@@ -1138,175 +1138,162 @@ describe("MintPasses", async () => {
     });
   });
 
-  describe("claimPromotionMintingPasses", async () => {
+  describe("mintPromotionPassBatch", async () => {
+    it("reverts if too much parameters", async () => {
+      const reason = "Too many mintPass to mint";
+
+      const classes = Array(31).fill(Class.BRONZE);
+
+      await expect(mintPasses.connect(owner).mintPromotionPassBatch(classes)).to.be.revertedWith(reason);
+    });
+    it("mint promotion pass batch successfully", async () => {
+      const classes1 = Array(6).fill(Class.BRONZE);
+      const classes2 = Array(5).fill(Class.SILVER);
+      const classes3 = Array(4).fill(Class.GOLD);
+      const classes4 = Array(3).fill(Class.PLATINUM);
+      const classes5 = Array(2).fill(Class.RUBY);
+      const classes6 = Array(1).fill(Class.ONYX);
+
+      const tx1 = await mintPasses.connect(owner).mintPromotionPassBatch(classes1);
+      const tx2 = await mintPasses.connect(owner).mintPromotionPassBatch(classes2);
+      const tx3 = await mintPasses.connect(owner).mintPromotionPassBatch(classes3);
+      const tx4 = await mintPasses.connect(owner).mintPromotionPassBatch(classes4);
+      const tx5 = await mintPasses.connect(owner).mintPromotionPassBatch(classes5);
+      const tx6 = await mintPasses.connect(owner).mintPromotionPassBatch(classes6);
+
+      expect(tx1).to.changeTokenBalance(mintPasses, mintPasses.address, 6);
+      expect(tx2).to.changeTokenBalance(mintPasses, mintPasses.address, 5);
+      expect(tx3).to.changeTokenBalance(mintPasses, mintPasses.address, 4);
+      expect(tx4).to.changeTokenBalance(mintPasses, mintPasses.address, 3);
+      expect(tx5).to.changeTokenBalance(mintPasses, mintPasses.address, 2);
+      expect(tx6).to.changeTokenBalance(mintPasses, mintPasses.address, 1);
+    });
+  });
+
+  describe("buyPromotionMintPass", async () => {
+    const value = toWei("100");
+
     beforeEach("setup", async () => {
-      const start = await getTime();
-      await mintPasses.connect(owner).startAuction(AUCTION_DURATION, start);
+      const classes1 = Array(6).fill(Class.BRONZE);
+      const classes2 = Array(5).fill(Class.SILVER);
+      const classes3 = Array(4).fill(Class.GOLD);
+      const classes4 = Array(3).fill(Class.PLATINUM);
+      const classes5 = Array(2).fill(Class.RUBY);
+      const classes6 = Array(1).fill(Class.ONYX);
+
+      await mintPasses.connect(owner).mintPromotionPassBatch(classes1);
+      await mintPasses.connect(owner).mintPromotionPassBatch(classes2);
+      await mintPasses.connect(owner).mintPromotionPassBatch(classes3);
+      await mintPasses.connect(owner).mintPromotionPassBatch(classes4);
+      await mintPasses.connect(owner).mintPromotionPassBatch(classes5);
+      await mintPasses.connect(owner).mintPromotionPassBatch(classes6);
 
       await mintPasses.connect(owner).addPromotionMintingAddress(user1.address);
-      await mintPasses.connect(owner).addPromotionMintingAddress(user2.address);
     });
-    it("reverts if auction active", async () => {
-      const reason = "Auction active";
 
-      await mintPasses.connect(owner).finishAuction();
+    it("reverts if prices not set", async () => {
+      const reason = "Prices not set yet";
 
-      const time = await getTime();
-      await mintPasses
-        .connect(owner)
-        .setClassesBidValueLimits(
-          [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
-          [
-            classLimits[0].bottom,
-            classLimits[1].bottom,
-            classLimits[2].bottom,
-            classLimits[3].bottom,
-            classLimits[4].bottom,
-            classLimits[5].bottom,
-          ],
-          [
-            classLimits[0].top,
-            classLimits[1].top,
-            classLimits[2].top,
-            classLimits[3].top,
-            classLimits[4].top,
-            classLimits[5].top,
-          ],
-          [time, time, time, time, time, time]
-        );
-
-      const start = await getTime();
-      await mintPasses.connect(owner).startAuction(AUCTION_DURATION, start);
-
-      await expect(mintPasses.connect(user1).claimPromotionMintingPasses()).to.be.revertedWith(reason);
+      await expect(
+        mintPasses.connect(user1).buyPromotionMintPass(0, {
+          value: value,
+        })
+      ).to.be.revertedWith(reason);
     });
     it("reverts if not beneficiary", async () => {
-      const reason = "MintPasses: not beneficary";
+      const reason = "Not beneficiary";
 
-      await mintPasses.connect(owner).finishAuction();
+      await mintPasses.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
 
-      const time = await getTime();
-      await mintPasses
-        .connect(owner)
-        .setClassesBidValueLimits(
-          [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
-          [
-            classLimits[0].bottom,
-            classLimits[1].bottom,
-            classLimits[2].bottom,
-            classLimits[3].bottom,
-            classLimits[4].bottom,
-            classLimits[5].bottom,
-          ],
-          [
-            classLimits[0].top,
-            classLimits[1].top,
-            classLimits[2].top,
-            classLimits[3].top,
-            classLimits[4].top,
-            classLimits[5].top,
-          ],
-          [time, time, time, time, time, time]
-        );
-
-      await expect(mintPasses.connect(user3).claimPromotionMintingPasses()).to.be.revertedWith(reason);
+      await expect(
+        mintPasses.connect(user2).buyPromotionMintPass(0, {
+          value: value,
+        })
+      ).to.be.revertedWith(reason);
     });
-    it("reverts if already claimed", async () => {
-      const reason = "MintPasses: not beneficary";
+    it("reverts if already bought", async () => {
+      const reason = "Not beneficiary";
 
-      await mintPasses.connect(owner).finishAuction();
+      await mintPasses.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
 
-      const time = await getTime();
-      await mintPasses
-        .connect(owner)
-        .setClassesBidValueLimits(
-          [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
-          [
-            classLimits[0].bottom,
-            classLimits[1].bottom,
-            classLimits[2].bottom,
-            classLimits[3].bottom,
-            classLimits[4].bottom,
-            classLimits[5].bottom,
-          ],
-          [
-            classLimits[0].top,
-            classLimits[1].top,
-            classLimits[2].top,
-            classLimits[3].top,
-            classLimits[4].top,
-            classLimits[5].top,
-          ],
-          [time, time, time, time, time, time]
-        );
+      await mintPasses.connect(user1).buyPromotionMintPass(0, {
+        value: value,
+      });
 
-      await mintPasses.connect(user1).claimPromotionMintingPasses();
-
-      await expect(mintPasses.connect(user1).claimPromotionMintingPasses()).to.be.revertedWith(reason);
+      await expect(
+        mintPasses.connect(user1).buyPromotionMintPass(0, {
+          value: value,
+        })
+      ).to.be.revertedWith(reason);
     });
-    it("claim promotion pass successfully", async () => {
-      await mintPasses.connect(owner).finishAuction();
+    it("reverts if not enough funds", async () => {
+      const reason = "There is not enough funds to buy";
 
-      const time = await getTime();
-      await mintPasses
-        .connect(owner)
-        .setClassesBidValueLimits(
-          [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
-          [
-            classLimits[0].bottom,
-            classLimits[1].bottom,
-            classLimits[2].bottom,
-            classLimits[3].bottom,
-            classLimits[4].bottom,
-            classLimits[5].bottom,
-          ],
-          [
-            classLimits[0].top,
-            classLimits[1].top,
-            classLimits[2].top,
-            classLimits[3].top,
-            classLimits[4].top,
-            classLimits[5].top,
-          ],
-          [time, time, time, time, time, time]
-        );
+      await mintPasses.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
 
-      const tx1 = await mintPasses.connect(user1).claimPromotionMintingPasses();
-      const tx2 = await mintPasses.connect(user2).claimPromotionMintingPasses();
-
-      expect(tx1).to.changeTokenBalance(mintPasses, user1, 1);
-      expect(tx2).to.changeTokenBalance(mintPasses, user2, 1);
+      await expect(
+        mintPasses.connect(user1).buyPromotionMintPass(0, {
+          value: toWei("50"),
+        })
+      ).to.be.revertedWith(reason);
     });
-    it("emits PromotionPassClaimed", async () => {
-      await mintPasses.connect(owner).finishAuction();
+    it("buy promotion pass successfully", async () => {
+      await mintPasses.connect(owner).addPromotionMintingAddress(user2.address);
+      await mintPasses.connect(owner).addPromotionMintingAddress(user3.address);
+      await mintPasses.connect(owner).addPromotionMintingAddress(user4.address);
+      await mintPasses.connect(owner).addPromotionMintingAddress(user5.address);
+      await mintPasses.connect(owner).addPromotionMintingAddress(user6.address);
 
-      const time = await getTime();
       await mintPasses
         .connect(owner)
-        .setClassesBidValueLimits(
+        .setPricePerClassPromotion(
           [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
           [
-            classLimits[0].bottom,
-            classLimits[1].bottom,
-            classLimits[2].bottom,
-            classLimits[3].bottom,
-            classLimits[4].bottom,
-            classLimits[5].bottom,
-          ],
-          [
-            classLimits[0].top,
-            classLimits[1].top,
-            classLimits[2].top,
-            classLimits[3].top,
-            classLimits[4].top,
-            classLimits[5].top,
-          ],
-          [time, time, time, time, time, time]
+            value,
+            toBN(value).times(2).toString(),
+            toBN(value).times(3).toString(),
+            toBN(value).times(4).toString(),
+            toBN(value).times(5).toString(),
+            toBN(value).times(6).toString(),
+          ]
         );
 
-      await expect(mintPasses.connect(user1).claimPromotionMintingPasses())
-        .to.emit(mintPasses, "PromotionPassClaimed")
-        .withArgs(user1.address, 0, (await getTime()).toString());
+      const tx1 = await mintPasses.connect(user1).buyPromotionMintPass(5, {
+        value: value,
+      });
+      const tx2 = await mintPasses.connect(user2).buyPromotionMintPass(10, {
+        value: toBN(value).times(2).toString(),
+      });
+      const tx3 = await mintPasses.connect(user3).buyPromotionMintPass(14, {
+        value: toBN(value).times(3).toString(),
+      });
+      const tx4 = await mintPasses.connect(user4).buyPromotionMintPass(17, {
+        value: toBN(value).times(4).toString(),
+      });
+      const tx5 = await mintPasses.connect(user5).buyPromotionMintPass(19, {
+        value: toBN(value).times(5).toString(),
+      });
+      const tx6 = await mintPasses.connect(user6).buyPromotionMintPass(20, {
+        value: toBN(value).times(6).toString(),
+      });
+
+      expect(tx1).to.changeTokenBalance(mintPasses, user1.address, 1);
+      expect(tx1).to.changeEtherBalance(user1, -value);
+
+      expect(tx2).to.changeTokenBalance(mintPasses, user2.address, 1);
+      expect(tx2).to.changeEtherBalance(user2, -toBN(value).times(2));
+
+      expect(tx3).to.changeTokenBalance(mintPasses, user3.address, 1);
+      expect(tx3).to.changeEtherBalance(user3, -toBN(value).times(3));
+
+      expect(tx4).to.changeTokenBalance(mintPasses, user4.address, 1);
+      expect(tx4).to.changeEtherBalance(user4, -toBN(value).times(4));
+
+      expect(tx5).to.changeTokenBalance(mintPasses, user5.address, 1);
+      expect(tx5).to.changeEtherBalance(user5, -toBN(value).times(5));
+
+      expect(tx6).to.changeTokenBalance(mintPasses, user6.address, 1);
+      expect(tx6).to.changeEtherBalance(user6, -toBN(value).times(6));
     });
   });
 

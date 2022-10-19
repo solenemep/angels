@@ -5,6 +5,7 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
@@ -17,19 +18,12 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./libraries/RandomGenerator.sol";
-import "./MintPassRarityGenerator.sol";
 
 // We import this library to be able to use console.log
 import "hardhat/console.sol";
 
 // This is the main building block for smart contracts.
-contract MintPasses is
-    Context,
-    ERC721Enumerable,
-    Ownable,
-    ReentrancyGuard,
-    MintPassRarityGenerator
-{
+contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -95,6 +89,7 @@ contract MintPasses is
 
     // promotion related
     EnumerableSet.AddressSet internal _promotionBeneficiaries;
+    mapping(Class => uint256) public promotionPrices; // class -> price
 
     // mintPass related
     mapping(uint256 => MintPassInfo) public mintPassInfos; // mintPassId -> MintPassInfo
@@ -157,16 +152,11 @@ contract MintPasses is
         string memory baseTokenURI,
         uint256 _totalBidsLimit,
         uint256 _minimumBidAmount,
-        uint256 _auctionDuration,
-        uint64 subscriptionId,
-        address vrfCoordinator,
-        address link,
-        bytes32 _keyHash
+        uint256 _auctionDuration
     )
         // TODO assert non empty treasury
         // TODO assert non empty scionContract
         ERC721(name, symbol)
-        MintPassRarityGenerator(subscriptionId, vrfCoordinator, link, _keyHash)
     {
         // uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash
         _baseTokenURI = baseTokenURI;
@@ -427,42 +417,25 @@ contract MintPasses is
                 payable(treasury).transfer(bidInfos[bidIndex].bidValue);
                 bidInfos[bidIndex].claimed = true;
 
-                uint256 tokenId = _mintMintPass(_msgSender(), class, false);
+                uint256 tokenId = _mintMintPass(_msgSender(), class);
 
                 emit PassClaimed(_msgSender(), tokenId, bidIndex, block.timestamp);
             }
         }
     }
 
-    function addPromotionMintingAddress(address _beneficiary) public onlyOwner nonReentrant {
-        require(!_promotionBeneficiaries.contains(_beneficiary), "MintPasses: Already added");
-        _promotionBeneficiaries.add(_beneficiary);
+    function mintPromotionPassBatch(Class[] memory classes) public onlyOwner {
+        require(classes.length < 30, "Too many mintPass to mint");
+        for (uint256 i = 0; i < classes.length; i++) {
+            _mintMintPass(address(this), classes[i]);
+        }
     }
 
-    function claimPromotionMintingPasses() public onlyInactive onlyIfClassSet nonReentrant {
-        require(_promotionBeneficiaries.contains(_msgSender()), "MintPasses: not beneficary");
-
-        _promotionBeneficiaries.remove(_msgSender());
-
-        uint256 tokenId = _mintMintPass(_msgSender(), Class.NONE, true);
-
-        emit PromotionPassClaimed(_msgSender(), tokenId, block.timestamp);
-    }
-
-    function _mintMintPass(
-        address user,
-        Class class,
-        bool isPromoted
-    ) internal returns (uint256 newTokenId) {
+    function _mintMintPass(address user, Class class) internal returns (uint256 newTokenId) {
         newTokenId = _tokenIdTracker.current();
 
-        if (isPromoted) {
-            // TODO need the class ?
-            //requestRandomWords(newTokenId); // Sets the rarity // function revert
-        } else {
-            mintPassInfos[newTokenId].class = class;
-            mintPassInfos[newTokenId].random = RandomGenerator.random(user, 1000, newTokenId);
-        }
+        mintPassInfos[newTokenId].class = class;
+        mintPassInfos[newTokenId].random = RandomGenerator.random(user, 1000, newTokenId);
 
         _safeMint(user, newTokenId);
         _tokenIdTracker.increment();
@@ -471,5 +444,44 @@ contract MintPasses is
     function burn(uint256 tokenId) external {
         require(scionContract == _msgSender(), "Only scion contract can burn");
         _burn(tokenId);
+    }
+
+    function addPromotionMintingAddress(address _beneficiary) public onlyOwner nonReentrant {
+        require(!_promotionBeneficiaries.contains(_beneficiary), "MintPasses: Already added");
+        _promotionBeneficiaries.add(_beneficiary);
+    }
+
+    function setPricePerClassPromotion(Class[] memory classes, uint256[] memory prices)
+        public
+        onlyOwner
+    {
+        require(classes.length == prices.length, "Data mismatch");
+        for (uint256 i = 0; i < classes.length; i++) {
+            promotionPrices[classes[i]] = prices[i];
+        }
+    }
+
+    function buyPromotionMintPass(uint256 _tokenId) external payable {
+        require(promotionPrices[mintPassInfos[_tokenId].class] > 0, "Prices not set yet");
+        require(_promotionBeneficiaries.contains(_msgSender()), "Not beneficiary");
+
+        require(
+            msg.value == promotionPrices[mintPassInfos[_tokenId].class],
+            "There is not enough funds to buy"
+        );
+        _promotionBeneficiaries.remove(_msgSender());
+
+        payable(treasury).transfer(msg.value);
+
+        _transfer(address(this), _msgSender(), _tokenId);
+    }
+
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
     }
 }
