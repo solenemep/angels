@@ -57,6 +57,15 @@ module.exports = {
       url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_KEY}`,
       accounts: accountsTestnet,
     },
+    polygon: {
+      url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+      accounts: accountsMainnet,
+      gasPrice: 180000000000
+    },
+    mumbai: {
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+      accounts: accountsTestnet,
+    },
   },
   etherscan: {
     // Your API key for Etherscan

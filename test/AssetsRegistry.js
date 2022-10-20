@@ -25,6 +25,32 @@ describe("AssetsRegistry", async () => {
     await restore();
   });
 
+  describe("setAssets", async () => {
+    it("set assets background", async () => {
+      // set in init.js
+      expect((await assetsRegistry.assetInfos(0, 1)).assetIndex).to.equal(1);
+      expect((await assetsRegistry.assetInfos(0, 6)).assetIndex).to.equal(6);
+    });
+    it("set assets halo", async () => {
+      // set in init.js
+
+      expect((await assetsRegistry.assetInfos(1, 7)).assetIndex).to.equal(7);
+      expect((await assetsRegistry.assetInfos(1, 26)).assetIndex).to.equal(26);
+    });
+  });
+  describe("unique weights", async () => {
+    it("uniqueWeightsForType", async () => {
+      // set in init.js
+      // console.log(await assetsRegistry.uniqueWeightsForType(0));
+    });
+    it("assetsUniqueWeightsIndexes", async () => {
+      // set in init.js
+      // console.log((await assetsRegistry.uniqueWeightsForTypeIndexes(0, 1000)).toString());
+      // console.log((await assetsRegistry.uniqueWeightsForTypeIndexes(0, 250)).toString());
+      // console.log((await assetsRegistry.uniqueWeightsForTypeIndexes(5, 100)).toString());
+      // console.log((await assetsRegistry.uniqueWeightsForTypeIndexes(6, 250)).toString());
+    });
+  });
   describe("getters", async () => {
     it("getAssetInfo", async () => {
       // console.log(await assetsRegistry.getAssetInfo(0, 1));
@@ -34,6 +60,7 @@ describe("AssetsRegistry", async () => {
     });
     it("getAssetsPerTypePerWeight", async () => {
       // console.log(await assetsRegistry.getAssetsPerTypePerWeight(0, 250));
+      // console.log(await assetsRegistry.getAssetsPerTypePerWeight(0, 9));
     });
     it("getAssetsPerTypePerWeightRange", async () => {
       // console.log(await assetsRegistry.getAssetsPerTypePerWeightRange(0, 100, 1000));

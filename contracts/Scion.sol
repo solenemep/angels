@@ -303,28 +303,13 @@ contract Scion is Ownable, ERC721Enumerable {
         uint256 _state
     ) private view returns (IAssetRegistry.AssetInfo memory) {
         uint256 currentWeight = weightChange(_assetId, _assetIndex, _state);
-        uint256 count;
-        IAssetRegistry.AssetInfo[] memory _assetsOfType = assetsRegistry.getAssetsPerType(
-            _assetId
-        );
-        for (uint256 i = 0; i < _assetsOfType.length; i++) {
-            if (_assetsOfType[i].weight == currentWeight) {
-                count++;
-            }
-        }
 
-        IAssetRegistry.AssetInfo[] memory assetsTemp = new IAssetRegistry.AssetInfo[](count);
-        uint256 index;
+        IAssetRegistry.AssetInfo[] memory assetsPerTypePerWeight = assetsRegistry
+            .getAssetsPerTypePerWeight(_assetId, currentWeight);
 
-        for (uint256 i = 0; i < _assetsOfType.length; i++) {
-            if (_assetsOfType[i].weight == currentWeight) {
-                assetsTemp[index] = _assetsOfType[i];
-                index++;
-            }
-        }
+        uint256 _random = RandomGenerator.random(_msgSender(), assetsPerTypePerWeight.length, 0);
 
-        uint256 _random = RandomGenerator.random(_msgSender(), count, 0);
-        IAssetRegistry.AssetInfo memory result = assetsTemp[_random];
+        IAssetRegistry.AssetInfo memory result = assetsPerTypePerWeight[_random];
 
         return result;
     }
@@ -474,7 +459,7 @@ contract Scion is Ownable, ERC721Enumerable {
                     assetsPerTypePerWeightRange[i].asset,
                     assetsPerTypePerWeightRange[i].weight,
                     assetsPerTypePerWeightRange[i].name,
-                    i
+                    assetsPerTypePerWeightRange[i].assetIndex
                 );
                 if (_assetId == 0) {
                     scionsData[_tokenId].background = newAsset;
