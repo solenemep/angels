@@ -2,6 +2,7 @@ const { ethers } = require("hardhat");
 const { args } = require("./arguments");
 const { assets } = require("./assets");
 const { weightLimits, Class } = require("./classLimits");
+const { toWei } = require("./utils");
 
 const addresses = {
   goerli: {
@@ -138,6 +139,7 @@ const init = async (isFork) => {
 
     await mintPassesSetUp(mintPasses, scion.address);
     await assetSetUp(assetsRegistry);
+    await stakingSetUp(keter, staking);
   }
 
   return {
@@ -181,6 +183,10 @@ const assetSetUp = async (assetsRegistry) => {
   for (const asset of assets) {
     await assetsRegistry.setAssets(asset.assetId, asset.assets, asset.weigths, asset.names);
   }
+};
+
+const stakingSetUp = async (keter, staking) => {
+  await keter.transfer(staking.address, toWei("1000000"));
 };
 
 module.exports.init = init;
