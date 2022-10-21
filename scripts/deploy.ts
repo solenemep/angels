@@ -7,6 +7,16 @@ const verify = require("../scripts/verify");
 const wait = async (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+const Class = {
+  NONE: 0,
+  BRONZE: 1,
+  SILVER: 2,
+  GOLD: 3,
+  PLATINUM: 4,
+  RUBY: 5,
+  ONYX: 6,
+};
+
 async function main() {
   // This is just a convenience check
   if (hre.network.name === "hardhat") {
@@ -26,7 +36,9 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const RandomGenerator = await hre.ethers.getContractFactory("RandomGenerator");
+  const RandomGenerator = await hre.ethers.getContractFactory(
+    "RandomGenerator"
+  );
   const randomGenerator = await RandomGenerator.deploy();
   await randomGenerator.deployed();
 
@@ -485,6 +497,21 @@ async function main() {
 
   console.log("Staking address:", staking.address);
 
+  tx = await mintPasses.setClassesWeightLimits(
+    [
+      Class.BRONZE,
+      Class.SILVER,
+      Class.GOLD,
+      Class.PLATINUM,
+      Class.RUBY,
+      Class.ONYX,
+    ],
+    [15, 10, 5, 1, 0, 0],
+    [2500, 2500, 2000, 1500, 1000, 800]
+  );
+
+  await tx.wait();
+
   console.log("Waiting 20 seconds before calling verify script...");
   await wait(20_000);
 
@@ -546,7 +573,7 @@ async function main() {
     hre.network.name,
     `${mintPasses.address} ${soul.address} ${keter.address} ${assetRegistry.address} ${args.SCION_NAME} ${args.SCION_SYMBOL} ${args.SCION_BASE_TOKEN_URI} ${args.DOWNGRADE} ${args.SAME_WEIGHT} ${args.RARITY_PLUS}`,
     true,
-    "scripts/libraries.ts",
+    "scripts/libraries.ts"
   );
   verify.logVerifyScript(verifyScript);
   await verify.verifyContract(verifyScript, 2);
