@@ -254,7 +254,6 @@ describe("Scion", async () => {
     it("reverts if inexistant asset", async () => {
       const reason = "";
 
-      await expect(scion.connect(user1).rerollAsset(0, 0)).to.be.revertedWith(reason);
       await expect(scion.connect(user1).rerollAsset(0, 7)).to.be.revertedWith(reason);
     });
     it("reroll asset successfully", async () => {
@@ -310,7 +309,9 @@ describe("Scion", async () => {
       // TODO
     });
     it("emits Reroll", async () => {
-      // TODO
+      const price1 = toWei((await scion.rerollPrice(0, 1)).toString());
+      await keter.connect(user1).approve(scion.address, price1);
+      await expect(scion.connect(user1).rerollAsset(0, 1)).to.emit(scion, "Reroll");
     });
   });
 
