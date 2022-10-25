@@ -5,8 +5,8 @@ const { init } = require("./helpers/init");
 const { toBN, toWei, snapshot, restore, getTime, getCosts } = require("./helpers/utils");
 
 describe("Scion", async () => {
-  let assetRegistry;
   let keter;
+  let soul;
   let mintPasses;
   let scion;
   let owner;
@@ -33,7 +33,7 @@ describe("Scion", async () => {
     user5 = setups.users[5];
     user6 = setups.users[6];
 
-    assetRegistry = setups.assetRegistry;
+    soul = setups.soul;
     keter = setups.keter;
     mintPasses = setups.mintPasses;
     scion = setups.scion;
@@ -254,7 +254,7 @@ describe("Scion", async () => {
     it("reverts if inexistant asset", async () => {
       const reason = "";
 
-      await expect(scion.connect(user1).rerollAsset(0, 7)).to.be.revertedWith(reason);
+      await expect(scion.connect(user1).rerollAsset(0, 7)).to.be.reverted;
     });
     it("reroll asset successfully", async () => {
       const price1 = toWei((await scion.rerollPrice(0, 1)).toString());
@@ -315,7 +315,66 @@ describe("Scion", async () => {
     });
   });
 
-  describe("burnForSoul", async () => {});
+  describe("burnForSoul", async () => {
+    beforeEach("setup", async () => {
+      await scion.connect(user1).claimScion(0);
+      await scion.connect(user2).claimScion(1);
+      await scion.connect(user3).claimScion(2);
+      await scion.connect(user4).claimScion(3);
+      await scion.connect(user5).claimScion(4);
+      await scion.connect(user6).claimScion(5);
+
+      await soul.setScionAddress(scion.address);
+    });
+    it("reverts if not owner of token", async () => {
+      const reason = "Scion: invalid owner";
+
+      await expect(scion.connect(user3).burnForSoul(0)).to.be.revertedWith(reason);
+    });
+    it("burns for soul successfully", async () => {
+      const price1 = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(0));
+      const tx1 = await scion.connect(user1).burnForSoul(0);
+
+      const price2 = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(1));
+      const tx2 = await scion.connect(user2).burnForSoul(1);
+
+      const price3 = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(2));
+      const tx3 = await scion.connect(user3).burnForSoul(2);
+
+      const price4 = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(3));
+      const tx4 = await scion.connect(user4).burnForSoul(3);
+
+      const price5 = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(4));
+      const tx5 = await scion.connect(user5).burnForSoul(4);
+
+      const price6 = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(5));
+      const tx6 = await scion.connect(user6).burnForSoul(5);
+
+      expect(tx1).to.changeTokenBalance(scion, user1, -1);
+      expect(tx1).to.changeTokenBalance(soul, user1, price1);
+      await expect(scion.ownerOf(0)).to.be.reverted;
+
+      expect(tx2).to.changeTokenBalance(scion, user2, -1);
+      expect(tx2).to.changeTokenBalance(soul, user2, price2);
+      await expect(scion.ownerOf(1)).to.be.reverted;
+
+      expect(tx3).to.changeTokenBalance(scion, user3, -1);
+      expect(tx3).to.changeTokenBalance(soul, user3, price3);
+      await expect(scion.ownerOf(2)).to.be.reverted;
+
+      expect(tx4).to.changeTokenBalance(scion, user4, -1);
+      expect(tx4).to.changeTokenBalance(soul, user4, price4);
+      await expect(scion.ownerOf(3)).to.be.reverted;
+
+      expect(tx5).to.changeTokenBalance(scion, user5, -1);
+      expect(tx5).to.changeTokenBalance(soul, user5, price5);
+      await expect(scion.ownerOf(4)).to.be.reverted;
+
+      expect(tx6).to.changeTokenBalance(scion, user6, -1);
+      expect(tx6).to.changeTokenBalance(soul, user6, price6);
+      await expect(scion.ownerOf(5)).to.be.reverted;
+    });
+  });
 
   describe("use case", async () => {});
 

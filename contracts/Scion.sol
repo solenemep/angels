@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./MintPasses.sol";
+import "./Soul.sol";
 
 import "./libraries/RandomGenerator.sol";
 import "./interfaces/IAssetRegistry.sol";
@@ -29,7 +30,7 @@ contract Scion is Ownable, ERC721Enumerable {
 
     string private _baseTokenURI;
 
-    IERC20 public soul;
+    Soul public soul;
     IERC20 public keter;
 
     struct Scions {
@@ -96,7 +97,7 @@ contract Scion is Ownable, ERC721Enumerable {
     ) ERC721(name, symbol) {
         mintPasses = MintPasses(_mintPasses);
         assetsRegistry = IAssetRegistry(_assetsRegistry);
-        soul = IERC20(_soul);
+        soul = Soul(_soul);
         keter = IERC20(_keter);
         _baseTokenURI = baseTokenURI;
 
@@ -193,7 +194,9 @@ contract Scion is Ownable, ERC721Enumerable {
     function burnForSoul(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
 
-        soul.safeTransfer(msg.sender, 1 * priceForRarityInSouls);
+        uint256 price = (1250000 * 10**soul.decimals()).div(getScionWeight(tokenId));
+
+        soul.mint(msg.sender, price);
         _burn(tokenId); // add new burn with scionsData
     }
 
@@ -486,5 +489,18 @@ contract Scion is Ownable, ERC721Enumerable {
             }
             previousWeightSum = newWeightSum;
         }
+    }
+
+    function getScionWeight(uint256 _tokenId) public view returns (uint256 totalWeight) {
+        Scions memory scion = scionsData[_tokenId];
+
+        totalWeight =
+            scion.background.weight +
+            scion.halo.weight +
+            scion.head.weight +
+            scion.body.weight +
+            scion.wings.weight +
+            scion.hands.weight +
+            scion.sigil.weight;
     }
 }
