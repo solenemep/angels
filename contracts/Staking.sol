@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 // @title NFT Staking
 /// @author Karan J Goraniya
@@ -11,6 +12,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// @dev All function calls are currently implemented without side effects
 
 contract Staking is ERC721Holder {
+    using EnumerableSet for EnumerableSet.UintSet;
     IERC721 public NFTItem;
     using SafeERC20 for IERC20;
     IERC20 public token;
@@ -21,12 +23,11 @@ contract Staking is ERC721Holder {
     uint256 public totalStakers;
     uint256 public constant DENO = 100;
 
-    mapping(address => uint256[]) private _stakedTokensByUser;
-    mapping(uint256 => int256) public stakedTokensByUserIndexes;
+    mapping(address => EnumerableSet.UintSet) internal _stakedTokensByUser;
 
     struct Staker {
         bool staked;
-        uint256 block;
+        uint256 blocknumber;
         uint256 harvested;
     }
 
@@ -40,8 +41,17 @@ contract Staking is ERC721Holder {
     event Stake(address indexed owner, uint256 id, uint256 block);
     event UnStake(address indexed owner, uint256 id, uint256 block, uint256 rewardTokens);
 
-    function getStakedTokenIdsByUser(address _user) public view returns (uint256[] memory) {
-        return _stakedTokensByUser[_user];
+    function getStakedTokenIdsByUser(address _user)
+        public
+        view
+        returns (uint256[] memory stakedTokensByUser)
+    {
+        uint256 count = _stakedTokensByUser[_user].length();
+        stakedTokensByUser = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            uint256 tokenId = _stakedTokensByUser[_user].at(i);
+            stakedTokensByUser[i] = tokenId;
+        }
     }
 
     // @notice It will calculate the rate of the token reward
@@ -49,14 +59,13 @@ contract Staking is ERC721Holder {
     // @return Return the reward rate %
 
     function calculateRewards(address _user, uint256 _tokenId) public view returns (uint256) {
-        uint256 _blocksPassed = block.number - stakes[_user][_tokenId].block;
+        uint256 _blocksPassed = block.number - stakes[_user][_tokenId].blocknumber;
 
         return
             totalStakers == 0
                 ? 0
-                : (_blocksPassed * rewardPerBlock) /
-                    totalStakers -
-                    stakes[msg.sender][_tokenId].harvested;
+                : ((_blocksPassed * rewardPerBlock) / totalStakers) -
+                    stakes[_user][_tokenId].harvested;
     }
 
     function stakeNFTs(uint256[] memory _tokenIds) external {
@@ -77,8 +86,7 @@ contract Staking is ERC721Holder {
         stakes[msg.sender][_tokenId] = Staker(true, block.number, 0);
         NFTItem.safeTransferFrom(msg.sender, address(this), _tokenId, "0x00");
 
-        _stakedTokensByUser[msg.sender].push(_tokenId);
-        stakedTokensByUserIndexes[_tokenId] = int256(_stakedTokensByUser[msg.sender].length - 1);
+        _stakedTokensByUser[msg.sender].add(_tokenId);
 
         totalStakers++;
 
@@ -99,18 +107,19 @@ contract Staking is ERC721Holder {
     // // Reward amount = Staked Amount * Reward Rate * TimeDiff / RewardInterval
 
     function unStakeNFT(uint256 _tokenId) public {
+        require(
+            stakes[msg.sender][_tokenId].staked == true,
+            "Staking: No stake with this token id"
+        );
         NFTItem.safeTransferFrom(address(this), msg.sender, _tokenId, "0x00");
 
         uint256 reward = calculateRewards(msg.sender, _tokenId);
 
         token.safeTransfer(msg.sender, reward);
 
-        _stakedTokensByUser[msg.sender][
-            uint256(stakedTokensByUserIndexes[_tokenId])
-        ] = _stakedTokensByUser[msg.sender][_stakedTokensByUser[msg.sender].length - 1];
-        _stakedTokensByUser[msg.sender].pop();
+        _stakedTokensByUser[msg.sender].remove(_tokenId);
 
-        stakedTokensByUserIndexes[_tokenId] = -1;
+        stakes[msg.sender][_tokenId].staked = false;
 
         totalStakers--;
 
@@ -139,8 +148,7 @@ contract Staking is ERC721Holder {
 
     function harvest(uint256 _tokenId) public {
         require(stakes[msg.sender][_tokenId].staked, "Staking: No stake with this token id");
-        uint256 reward = calculateRewards(msg.sender, _tokenId) -
-            stakes[msg.sender][_tokenId].harvested;
+        uint256 reward = calculateRewards(msg.sender, _tokenId);
         stakes[msg.sender][_tokenId].harvested += reward;
 
         token.safeTransfer(msg.sender, reward);

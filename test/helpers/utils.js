@@ -31,6 +31,17 @@ async function getTime() {
     .toString();
 }
 
+async function getCurrentBlock() {
+  const block = await web3.eth.getBlock("latest");
+  return block.number;
+}
+
+async function advanceBlockTo(blockAmount) {
+  const lastBlock = await time.latestBlock();
+
+  await time.advanceBlockTo(toBN(lastBlock).plus(blockAmount).toString());
+}
+
 async function getCosts(tx) {
   const receipt = await web3.eth.getTransactionReceipt(tx.hash);
   const gasUsed = receipt.gasUsed;
@@ -55,5 +66,7 @@ module.exports = {
   increaseTime,
   increaseTimeTo,
   getTime,
+  getCurrentBlock,
+  advanceBlockTo,
   getCosts,
 };
