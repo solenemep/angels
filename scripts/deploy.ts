@@ -65,6 +65,14 @@ async function main() {
   await mintPasses.deployed();
   console.log("MintPasses address:", mintPasses.address);
 
+  const MintPassesHolder = await hre.ethers.getContractFactory(
+    "MintPassesHolder"
+  );
+  const mintPassesHolder = await MintPassesHolder.deploy(mintPasses.address);
+  await mintPassesHolder.deployed();
+
+  console.log("MintPassesHolder address:", mintPassesHolder.address);
+
   await wait(30_000);
 
   const Soul = await hre.ethers.getContractFactory("Soul");

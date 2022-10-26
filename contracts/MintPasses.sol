@@ -5,7 +5,6 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
@@ -27,7 +26,6 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
     using EnumerableSet for EnumerableSet.UintSet;
-    using EnumerableSet for EnumerableSet.AddressSet;
     using Math for uint256;
     using SafeMath for uint256;
 
@@ -40,6 +38,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
     uint256 public minimumBidAmount;
     uint256 public auctionDuration;
     address public scionContract;
+    address public mintPassHolderContract;
     address public treasury;
 
     enum Class {
@@ -87,10 +86,6 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
     EnumerableSet.UintSet internal _allBids; // bidIndexes
     mapping(address => EnumerableSet.UintSet) internal _ownedBids; // user -> bidIndexes
 
-    // promotion related
-    EnumerableSet.AddressSet internal _promotionBeneficiaries;
-    mapping(Class => uint256) public promotionPrices; // class -> price
-
     // mintPass related
     mapping(uint256 => MintPassInfo) public mintPassInfos; // mintPassId -> MintPassInfo
 
@@ -117,11 +112,6 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
         address indexed bidder,
         uint256 indexed passId,
         uint256 indexed bidId,
-        uint256 timestamp
-    );
-    event PromotionPassClaimed(
-        address indexed beneficiary,
-        uint256 indexed passId,
         uint256 timestamp
     );
 
@@ -310,6 +300,10 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
         scionContract = _scionContract;
     }
 
+    function setMintPassesHolderAddress(address _mintPassesHolderContract) external onlyOwner {
+        mintPassHolderContract = _mintPassesHolderContract;
+    }
+
     function startAuction(uint256 _auctionDuration, uint256 _auctionStart) external onlyOwner {
         start = _auctionStart;
         auctionDuration = _auctionDuration * 1 minutes;
@@ -427,7 +421,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
     function mintPromotionPassBatch(Class[] memory classes) public onlyOwner {
         require(classes.length < 30, "Too many mintPass to mint");
         for (uint256 i = 0; i < classes.length; i++) {
-            _mintMintPass(address(this), classes[i]);
+            _mintMintPass(mintPassHolderContract, classes[i]);
         }
     }
 
@@ -444,44 +438,5 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
     function burn(uint256 tokenId) external {
         require(scionContract == _msgSender(), "Only scion contract can burn");
         _burn(tokenId);
-    }
-
-    function addPromotionMintingAddress(address _beneficiary) public onlyOwner nonReentrant {
-        require(!_promotionBeneficiaries.contains(_beneficiary), "MintPasses: Already added");
-        _promotionBeneficiaries.add(_beneficiary);
-    }
-
-    function setPricePerClassPromotion(Class[] memory classes, uint256[] memory prices)
-        public
-        onlyOwner
-    {
-        require(classes.length == prices.length, "Data mismatch");
-        for (uint256 i = 0; i < classes.length; i++) {
-            promotionPrices[classes[i]] = prices[i];
-        }
-    }
-
-    function buyPromotionMintPass(uint256 _tokenId) external payable {
-        require(promotionPrices[mintPassInfos[_tokenId].class] > 0, "Prices not set yet");
-        require(_promotionBeneficiaries.contains(_msgSender()), "Not beneficiary");
-
-        require(
-            msg.value == promotionPrices[mintPassInfos[_tokenId].class],
-            "There is not enough funds to buy"
-        );
-        _promotionBeneficiaries.remove(_msgSender());
-
-        payable(treasury).transfer(msg.value);
-
-        _transfer(address(this), _msgSender(), _tokenId);
-    }
-
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure returns (bytes4) {
-        return IERC721Receiver.onERC721Received.selector;
     }
 }
