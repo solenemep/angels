@@ -8,16 +8,12 @@ contract Soul is Ownable, ERC20Burnable {
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
-    modifier onlyScion() {
-        require(scionAddress == _msgSender(), "Not Scion contract");
-        _;
-    }
-
     function setScionAddress(address _scionAddress) external onlyOwner {
         scionAddress = _scionAddress;
     }
 
-    function mint(address to, uint256 amount) external onlyScion {
+    function mint(address to, uint256 amount) external {
+        require(scionAddress == _msgSender() || owner() == _msgSender(), "Not allowed");
         _mint(to, amount);
     }
 }
