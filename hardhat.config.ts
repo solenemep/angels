@@ -3,9 +3,9 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-web3";
+import "@nomicfoundation/hardhat-chai-matchers";
 import "web3-eth";
 
 /**
@@ -60,7 +60,7 @@ module.exports = {
     polygon: {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
       accounts: accountsMainnet,
-      gasPrice: 180000000000
+      gasPrice: 180000000000,
     },
     mumbai: {
       url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_KEY}`,
