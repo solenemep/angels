@@ -28,6 +28,7 @@ const init = async (isFork) => {
   let keter;
   let soul;
   let archangel;
+  let mintPassesHolder;
   let mintPasses;
   let scion;
   let staking;
@@ -109,6 +110,10 @@ const init = async (isFork) => {
     );
     await mintPasses.deployed();
 
+    const MintPassesHolder = await ethers.getContractFactory("MintPassesHolder");
+    mintPassesHolder = await MintPassesHolder.deploy(mintPasses.address);
+    await mintPassesHolder.deployed();
+
     const Scion = await hre.ethers.getContractFactory("Scion", {
       libraries: {
         RandomGenerator: randomGenerator.address,
@@ -133,7 +138,7 @@ const init = async (isFork) => {
     staking = await Staking.deploy(keter.address, scion.address);
     await staking.deployed();
 
-    await mintPassesSetUp(mintPasses, scion.address);
+    await mintPassesSetUp(mintPasses, scion.address, mintPassesHolder.address);
     await assetSetUp(assetsRegistry);
     await stakingSetUp(keter, staking);
   }
@@ -146,13 +151,15 @@ const init = async (isFork) => {
     soul,
     archangel,
     mintPasses,
+    mintPassesHolder,
     scion,
     staking,
   };
 };
 
-const mintPassesSetUp = async (mintPasses, scionAddress) => {
+const mintPassesSetUp = async (mintPasses, scionAddress, mintPassesHolderAddress) => {
   await mintPasses.setScionAddress(scionAddress);
+  await mintPasses.setMintPassesHolderAddress(mintPassesHolderAddress);
 
   await mintPasses.setClassesWeightLimits(
     [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],

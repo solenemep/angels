@@ -7,6 +7,7 @@ const { toBN, toWei, snapshot, restore, increaseTime, increaseTimeTo, getTime, g
 
 describe("MintPasses", async () => {
   let mintPasses;
+  let mintPassesHolder;
   let owner;
   let user1, user2, user3, user4, user5, user6;
 
@@ -28,6 +29,7 @@ describe("MintPasses", async () => {
     user6 = setups.users[6];
 
     mintPasses = setups.mintPasses;
+    mintPassesHolder = setups.mintPassesHolder;
 
     await snapshot();
   });
@@ -1161,12 +1163,12 @@ describe("MintPasses", async () => {
       const tx5 = await mintPasses.connect(owner).mintPromotionPassBatch(classes5);
       const tx6 = await mintPasses.connect(owner).mintPromotionPassBatch(classes6);
 
-      expect(tx1).to.changeTokenBalance(mintPasses, mintPasses.address, 6);
-      expect(tx2).to.changeTokenBalance(mintPasses, mintPasses.address, 5);
-      expect(tx3).to.changeTokenBalance(mintPasses, mintPasses.address, 4);
-      expect(tx4).to.changeTokenBalance(mintPasses, mintPasses.address, 3);
-      expect(tx5).to.changeTokenBalance(mintPasses, mintPasses.address, 2);
-      expect(tx6).to.changeTokenBalance(mintPasses, mintPasses.address, 1);
+      expect(tx1).to.changeTokenBalance(mintPasses, mintPassesHolder.address, 6);
+      expect(tx2).to.changeTokenBalance(mintPasses, mintPassesHolder.address, 5);
+      expect(tx3).to.changeTokenBalance(mintPasses, mintPassesHolder.address, 4);
+      expect(tx4).to.changeTokenBalance(mintPasses, mintPassesHolder.address, 3);
+      expect(tx5).to.changeTokenBalance(mintPasses, mintPassesHolder.address, 2);
+      expect(tx6).to.changeTokenBalance(mintPasses, mintPassesHolder.address, 1);
     });
   });
 
@@ -1188,14 +1190,14 @@ describe("MintPasses", async () => {
       await mintPasses.connect(owner).mintPromotionPassBatch(classes5);
       await mintPasses.connect(owner).mintPromotionPassBatch(classes6);
 
-      await mintPasses.connect(owner).addPromotionMintingAddress(user1.address);
+      await mintPassesHolder.connect(owner).addPromotionMintingAddress(user1.address);
     });
 
     it("reverts if prices not set", async () => {
       const reason = "Prices not set yet";
 
       await expect(
-        mintPasses.connect(user1).buyPromotionMintPass(0, {
+        mintPassesHolder.connect(user1).buyPromotionMintPass(0, {
           value: value,
         })
       ).to.be.revertedWith(reason);
@@ -1203,10 +1205,10 @@ describe("MintPasses", async () => {
     it("reverts if not beneficiary", async () => {
       const reason = "Not beneficiary";
 
-      await mintPasses.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
+      await mintPassesHolder.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
 
       await expect(
-        mintPasses.connect(user2).buyPromotionMintPass(0, {
+        mintPassesHolder.connect(user2).buyPromotionMintPass(0, {
           value: value,
         })
       ).to.be.revertedWith(reason);
@@ -1214,14 +1216,14 @@ describe("MintPasses", async () => {
     it("reverts if already bought", async () => {
       const reason = "Not beneficiary";
 
-      await mintPasses.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
+      await mintPassesHolder.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
 
-      await mintPasses.connect(user1).buyPromotionMintPass(0, {
+      await mintPassesHolder.connect(user1).buyPromotionMintPass(0, {
         value: value,
       });
 
       await expect(
-        mintPasses.connect(user1).buyPromotionMintPass(0, {
+        mintPassesHolder.connect(user1).buyPromotionMintPass(0, {
           value: value,
         })
       ).to.be.revertedWith(reason);
@@ -1229,22 +1231,22 @@ describe("MintPasses", async () => {
     it("reverts if not enough funds", async () => {
       const reason = "There is not enough funds to buy";
 
-      await mintPasses.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
+      await mintPassesHolder.connect(owner).setPricePerClassPromotion([Class.BRONZE], [value]);
 
       await expect(
-        mintPasses.connect(user1).buyPromotionMintPass(0, {
+        mintPassesHolder.connect(user1).buyPromotionMintPass(0, {
           value: toWei("50"),
         })
       ).to.be.revertedWith(reason);
     });
     it("buy promotion pass successfully", async () => {
-      await mintPasses.connect(owner).addPromotionMintingAddress(user2.address);
-      await mintPasses.connect(owner).addPromotionMintingAddress(user3.address);
-      await mintPasses.connect(owner).addPromotionMintingAddress(user4.address);
-      await mintPasses.connect(owner).addPromotionMintingAddress(user5.address);
-      await mintPasses.connect(owner).addPromotionMintingAddress(user6.address);
+      await mintPassesHolder.connect(owner).addPromotionMintingAddress(user2.address);
+      await mintPassesHolder.connect(owner).addPromotionMintingAddress(user3.address);
+      await mintPassesHolder.connect(owner).addPromotionMintingAddress(user4.address);
+      await mintPassesHolder.connect(owner).addPromotionMintingAddress(user5.address);
+      await mintPassesHolder.connect(owner).addPromotionMintingAddress(user6.address);
 
-      await mintPasses
+      await mintPassesHolder
         .connect(owner)
         .setPricePerClassPromotion(
           [Class.BRONZE, Class.SILVER, Class.GOLD, Class.PLATINUM, Class.RUBY, Class.ONYX],
@@ -1258,22 +1260,22 @@ describe("MintPasses", async () => {
           ]
         );
 
-      const tx1 = await mintPasses.connect(user1).buyPromotionMintPass(5, {
+      const tx1 = await mintPassesHolder.connect(user1).buyPromotionMintPass(5, {
         value: value,
       });
-      const tx2 = await mintPasses.connect(user2).buyPromotionMintPass(10, {
+      const tx2 = await mintPassesHolder.connect(user2).buyPromotionMintPass(10, {
         value: toBN(value).times(2).toString(),
       });
-      const tx3 = await mintPasses.connect(user3).buyPromotionMintPass(14, {
+      const tx3 = await mintPassesHolder.connect(user3).buyPromotionMintPass(14, {
         value: toBN(value).times(3).toString(),
       });
-      const tx4 = await mintPasses.connect(user4).buyPromotionMintPass(17, {
+      const tx4 = await mintPassesHolder.connect(user4).buyPromotionMintPass(17, {
         value: toBN(value).times(4).toString(),
       });
-      const tx5 = await mintPasses.connect(user5).buyPromotionMintPass(19, {
+      const tx5 = await mintPassesHolder.connect(user5).buyPromotionMintPass(19, {
         value: toBN(value).times(5).toString(),
       });
-      const tx6 = await mintPasses.connect(user6).buyPromotionMintPass(20, {
+      const tx6 = await mintPassesHolder.connect(user6).buyPromotionMintPass(20, {
         value: toBN(value).times(6).toString(),
       });
 
