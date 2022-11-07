@@ -22,6 +22,8 @@ describe("Staking", async () => {
   let scion;
   let owner;
   let user1, user2, user3;
+  let bn;
+  let diffBlock;
 
   const bidValues = [
     toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(2).toString(),
@@ -35,6 +37,7 @@ describe("Staking", async () => {
   const AUCTION_DURATION = 3 * 24 * 60; // 3 days (in minutes)
 
   before("setup", async () => {
+    bn = await getCurrentBlock();
     const setups = await init(false);
     owner = setups.users[0];
     user1 = setups.users[1];
@@ -150,68 +153,44 @@ describe("Staking", async () => {
     it("stake NFT sucessfully", async () => {
       await scion.connect(user1).approve(staking.address, 0);
       const tx1 = await staking.connect(user1).stakeNFT(0);
-      const bn1 = await getCurrentBlock();
 
       await scion.connect(user1).approve(staking.address, 1);
       const tx2 = await staking.connect(user1).stakeNFT(1);
-      const bn2 = await getCurrentBlock();
 
       await scion.connect(user2).approve(staking.address, 2);
       const tx3 = await staking.connect(user2).stakeNFT(2);
-      const bn3 = await getCurrentBlock();
 
       await scion.connect(user2).approve(staking.address, 3);
       const tx4 = await staking.connect(user2).stakeNFT(3);
-      const bn4 = await getCurrentBlock();
 
       await scion.connect(user3).approve(staking.address, 4);
       const tx5 = await staking.connect(user3).stakeNFT(4);
-      const bn5 = await getCurrentBlock();
 
       await scion.connect(user3).approve(staking.address, 5);
       const tx6 = await staking.connect(user3).stakeNFT(5);
-      const bn6 = await getCurrentBlock();
 
       expect(tx1).to.changeTokenBalance(scion, user1, -1);
       expect(await scion.ownerOf(0)).to.equal(staking.address);
-      expect((await staking.stakes(user1.address, 0))[0]).to.equal(true);
-      expect((await staking.stakes(user1.address, 0))[1]).to.equal(bn1.toString());
-      expect((await staking.stakes(user1.address, 0))[2]).to.equal(0);
 
       expect(tx2).to.changeTokenBalance(scion, user1, -1);
       expect(await scion.ownerOf(1)).to.equal(staking.address);
-      expect((await staking.stakes(user1.address, 1))[0]).to.equal(true);
-      expect((await staking.stakes(user1.address, 1))[1]).to.equal(bn2.toString());
-      expect((await staking.stakes(user1.address, 1))[2]).to.equal(0);
 
       expect(tx3).to.changeTokenBalance(scion, user2, -1);
       expect(await scion.ownerOf(2)).to.equal(staking.address);
-      expect((await staking.stakes(user2.address, 2))[0]).to.equal(true);
-      expect((await staking.stakes(user2.address, 2))[1]).to.equal(bn3.toString());
-      expect((await staking.stakes(user2.address, 2))[2]).to.equal(0);
 
       expect(tx4).to.changeTokenBalance(scion, user2, -1);
       expect(await scion.ownerOf(3)).to.equal(staking.address);
-      expect((await staking.stakes(user2.address, 3))[0]).to.equal(true);
-      expect((await staking.stakes(user2.address, 3))[1]).to.equal(bn4.toString());
-      expect((await staking.stakes(user2.address, 3))[2]).to.equal(0);
 
       expect(tx5).to.changeTokenBalance(scion, user3, -1);
       expect(await scion.ownerOf(4)).to.equal(staking.address);
-      expect((await staking.stakes(user3.address, 4))[0]).to.equal(true);
-      expect((await staking.stakes(user3.address, 4))[1]).to.equal(bn5.toString());
-      expect((await staking.stakes(user3.address, 4))[2]).to.equal(0);
 
       expect(tx6).to.changeTokenBalance(scion, user3, -1);
       expect(await scion.ownerOf(5)).to.equal(staking.address);
-      expect((await staking.stakes(user3.address, 5))[0]).to.equal(true);
-      expect((await staking.stakes(user3.address, 5))[1]).to.equal(bn6.toString());
-      expect((await staking.stakes(user3.address, 5))[2]).to.equal(0);
     });
-    it("emits Stake", async () => {
+    it("emits StakeNFT", async () => {
       await scion.connect(user1).approve(staking.address, 0);
       await expect(staking.connect(user1).stakeNFT(0))
-        .to.emit(staking, "Stake")
+        .to.emit(staking, "StakeNFT")
         .withArgs(
           user1.address,
           0,
@@ -241,53 +220,26 @@ describe("Staking", async () => {
       await scion.connect(user1).approve(staking.address, 0);
       await scion.connect(user1).approve(staking.address, 1);
       const tx1 = await staking.connect(user1).stakeNFTs([0, 1]);
-      const bn1 = await getCurrentBlock();
 
       await scion.connect(user2).approve(staking.address, 2);
       await scion.connect(user2).approve(staking.address, 3);
       const tx2 = await staking.connect(user2).stakeNFTs([2, 3]);
-      const bn2 = await getCurrentBlock();
 
       await scion.connect(user3).approve(staking.address, 4);
       await scion.connect(user3).approve(staking.address, 5);
       const tx3 = await staking.connect(user3).stakeNFTs([4, 5]);
-      const bn3 = await getCurrentBlock();
 
       expect(tx1).to.changeTokenBalance(scion, user1, -2);
       expect(await scion.ownerOf(0)).to.equal(staking.address);
       expect(await scion.ownerOf(1)).to.equal(staking.address);
 
-      expect((await staking.stakes(user1.address, 0))[0]).to.equal(true);
-      expect((await staking.stakes(user1.address, 0))[1]).to.equal(bn1.toString());
-      expect((await staking.stakes(user1.address, 0))[2]).to.equal(0);
-
-      expect((await staking.stakes(user1.address, 1))[0]).to.equal(true);
-      expect((await staking.stakes(user1.address, 1))[1]).to.equal(bn1.toString());
-      expect((await staking.stakes(user1.address, 1))[2]).to.equal(0);
-
       expect(tx2).to.changeTokenBalance(scion, user2, -2);
       expect(await scion.ownerOf(2)).to.equal(staking.address);
       expect(await scion.ownerOf(3)).to.equal(staking.address);
 
-      expect((await staking.stakes(user2.address, 2))[0]).to.equal(true);
-      expect((await staking.stakes(user2.address, 2))[1]).to.equal(bn2.toString());
-      expect((await staking.stakes(user2.address, 2))[2]).to.equal(0);
-
-      expect((await staking.stakes(user2.address, 3))[0]).to.equal(true);
-      expect((await staking.stakes(user2.address, 3))[1]).to.equal(bn2.toString());
-      expect((await staking.stakes(user2.address, 3))[2]).to.equal(0);
-
       expect(tx3).to.changeTokenBalance(scion, user3, -2);
       expect(await scion.ownerOf(4)).to.equal(staking.address);
       expect(await scion.ownerOf(5)).to.equal(staking.address);
-
-      expect((await staking.stakes(user3.address, 4))[0]).to.equal(true);
-      expect((await staking.stakes(user3.address, 4))[1]).to.equal(bn3.toString());
-      expect((await staking.stakes(user3.address, 4))[2]).to.equal(0);
-
-      expect((await staking.stakes(user3.address, 5))[0]).to.equal(true);
-      expect((await staking.stakes(user3.address, 5))[1]).to.equal(bn3.toString());
-      expect((await staking.stakes(user3.address, 5))[2]).to.equal(0);
     });
   });
   describe("unStakeNFT", async () => {
@@ -333,46 +285,32 @@ describe("Staking", async () => {
       const tx6 = await staking.connect(user3).unStakeNFT(5);
 
       expect(tx1).to.changeTokenBalance(scion, user1, 1);
-      expect(tx1).to.changeTokenBalance(keter, user1, (await staking.calculateRewards(user1.address, 0)).toString());
       expect(await scion.ownerOf(0)).to.equal(user1.address);
-      expect((await staking.stakes(user1.address, 0))[0]).to.equal(false);
 
       expect(tx2).to.changeTokenBalance(scion, user1, 1);
-      expect(tx1).to.changeTokenBalance(keter, user1, (await staking.calculateRewards(user1.address, 1)).toString());
       expect(await scion.ownerOf(1)).to.equal(user1.address);
-      expect((await staking.stakes(user1.address, 1))[0]).to.equal(false);
 
       expect(tx3).to.changeTokenBalance(scion, user2, 1);
-      expect(tx1).to.changeTokenBalance(keter, user2, (await staking.calculateRewards(user2.address, 2)).toString());
       expect(await scion.ownerOf(2)).to.equal(user2.address);
-      expect((await staking.stakes(user2.address, 2))[0]).to.equal(false);
 
       expect(tx4).to.changeTokenBalance(scion, user2, 1);
-      expect(tx1).to.changeTokenBalance(keter, user2, (await staking.calculateRewards(user2.address, 3)).toString());
       expect(await scion.ownerOf(3)).to.equal(user2.address);
-      expect((await staking.stakes(user2.address, 3))[0]).to.equal(false);
 
       expect(tx5).to.changeTokenBalance(scion, user3, 1);
-      expect(tx1).to.changeTokenBalance(keter, user3, (await staking.calculateRewards(user3.address, 4)).toString());
       expect(await scion.ownerOf(4)).to.equal(user3.address);
-      expect((await staking.stakes(user3.address, 4))[0]).to.equal(false);
 
       expect(tx6).to.changeTokenBalance(scion, user3, 1);
-      expect(tx1).to.changeTokenBalance(keter, user3, (await staking.calculateRewards(user3.address, 5)).toString());
       expect(await scion.ownerOf(5)).to.equal(user3.address);
-      expect((await staking.stakes(user3.address, 5))[0]).to.equal(false);
     });
-    it("emits UnStake", async () => {
-      const reward = Number(await staking.calculateRewards(user1.address, 0)) + 1; // margin for time passed
+    it("emits UnStakeNFT", async () => {
       await expect(staking.connect(user1).unStakeNFT(0))
-        .to.emit(staking, "UnStake")
+        .to.emit(staking, "UnStakeNFT")
         .withArgs(
           user1.address,
           0,
           toBN(await getCurrentBlock())
             .plus(1)
-            .toString(),
-          reward.toString()
+            .toString()
         );
     });
   });
@@ -423,46 +361,53 @@ describe("Staking", async () => {
       const tx3 = await staking.connect(user3).unStakeNFTs([4, 5]);
 
       expect(tx1).to.changeTokenBalance(scion, user1, 2);
-      expect(tx1).to.changeTokenBalance(
-        keter,
-        user1,
-        toBN(await staking.calculateRewards(user1.address, 0))
-          .plus(await staking.calculateRewards(user1.address, 1))
-          .toString()
-      );
       expect(await scion.ownerOf(0)).to.equal(user1.address);
       expect(await scion.ownerOf(1)).to.equal(user1.address);
-      expect((await staking.stakes(user1.address, 0))[0]).to.equal(false);
-      expect((await staking.stakes(user1.address, 1))[0]).to.equal(false);
 
       expect(tx2).to.changeTokenBalance(scion, user2, 2);
-      expect(tx2).to.changeTokenBalance(
-        keter,
-        user2,
-        toBN(await staking.calculateRewards(user2.address, 2))
-          .plus(await staking.calculateRewards(user2.address, 3))
-          .toString()
-      );
       expect(await scion.ownerOf(2)).to.equal(user2.address);
       expect(await scion.ownerOf(3)).to.equal(user2.address);
-      expect((await staking.stakes(user2.address, 2))[0]).to.equal(false);
-      expect((await staking.stakes(user2.address, 3))[0]).to.equal(false);
 
       expect(tx3).to.changeTokenBalance(scion, user3, 2);
-      expect(tx3).to.changeTokenBalance(
-        keter,
-        user3,
-        toBN(await staking.calculateRewards(user3.address, 4))
-          .plus(await staking.calculateRewards(user3.address, 5))
-          .toString()
-      );
       expect(await scion.ownerOf(4)).to.equal(user3.address);
       expect(await scion.ownerOf(5)).to.equal(user3.address);
-      expect((await staking.stakes(user3.address, 4))[0]).to.equal(false);
-      expect((await staking.stakes(user3.address, 5))[0]).to.equal(false);
     });
   });
-  describe("harvest", async () => {
+  describe("rewardPerToken()", () => {
+    it("should return 0 if no stake", async () => {
+      expect(await staking.rewardPerToken()).to.equal(0);
+    });
+    it("should be > 0 if stake", async () => {
+      await scion.connect(user1).approve(staking.address, 0);
+      await staking.connect(user1).stakeNFT(0);
+
+      await scion.connect(user1).approve(staking.address, 1);
+      await staking.connect(user1).stakeNFT(1);
+
+      await scion.connect(user2).approve(staking.address, 2);
+      await staking.connect(user2).stakeNFT(2);
+
+      expect(Number(await staking.rewardPerToken())).to.be.greaterThan(0);
+    });
+  });
+  describe("earned()", () => {
+    it("should be 0 if no stake", async () => {
+      expect(await staking.earned(user1.address)).to.equal(0);
+    });
+    it("should be > 0 if stake", async () => {
+      await scion.connect(user1).approve(staking.address, 0);
+      await staking.connect(user1).stakeNFT(0);
+
+      await scion.connect(user1).approve(staking.address, 1);
+      await staking.connect(user1).stakeNFT(1);
+
+      await scion.connect(user2).approve(staking.address, 2);
+      await staking.connect(user2).stakeNFT(2);
+
+      expect(Number(await staking.earned(user1.address))).to.be.greaterThan(0);
+    });
+  });
+  describe("getReward", async () => {
     beforeEach("setup", async () => {
       await scion.connect(user1).approve(staking.address, 0);
       await staking.connect(user1).stakeNFT(0);
@@ -484,141 +429,42 @@ describe("Staking", async () => {
 
       await advanceBlockTo(2000);
     });
-    it("reverts if not staked", async () => {
-      const reason = "Staking: No stake with this token id";
+    it("getReward successfully", async () => {
+      const balanceU1Before = await keter.balanceOf(user1.address);
+      await staking.connect(user1).getReward();
+      expect(await staking.rewards(user1.address)).to.equal(0);
+      expect(Number(await staking.rewards(user2.address))).to.be.greaterThan(0);
+      expect(Number(await staking.rewards(user3.address))).to.be.greaterThan(0);
+      const balanceU1After = await keter.balanceOf(user1.address);
 
-      await expect(staking.connect(user3).harvest(0)).to.be.revertedWith(reason);
+      const balanceU2Before = await keter.balanceOf(user2.address);
+      await staking.connect(user2).getReward();
+      expect(await staking.rewards(user2.address)).to.equal(0);
+      expect(Number(await staking.rewards(user3.address))).to.be.greaterThan(0);
+      const balanceU2After = await keter.balanceOf(user2.address);
+
+      const balanceU3Before = await keter.balanceOf(user3.address);
+      await staking.connect(user3).getReward();
+      expect(await staking.rewards(user3.address)).to.equal(0);
+      const balanceU3After = await keter.balanceOf(user3.address);
+
+      expect(Number(balanceU1After)).to.be.greaterThan(Number(balanceU1Before));
+      expect(Number(balanceU2After)).to.be.greaterThan(Number(balanceU2Before));
+      expect(Number(balanceU3After)).to.be.greaterThan(Number(balanceU3Before));
     });
-    it("harvest successfully", async () => {
-      const reward1 = await staking.calculateRewards(user1.address, 0);
-      const tx1 = await staking.connect(user1).harvest(0);
+    it("getReward twice", async () => {
+      let tx = await staking.connect(user1).getReward();
+      expect(await staking.rewards(user1.address)).to.equal(0);
 
-      const reward2 = await staking.calculateRewards(user1.address, 1);
-      const tx2 = await staking.connect(user1).harvest(1);
-
-      const reward3 = await staking.calculateRewards(user2.address, 2);
-      const tx3 = await staking.connect(user2).harvest(2);
-
-      const reward4 = await staking.calculateRewards(user2.address, 3);
-      const tx4 = await staking.connect(user2).harvest(3);
-
-      const reward5 = await staking.calculateRewards(user3.address, 4);
-      const tx5 = await staking.connect(user3).harvest(4);
-
-      const reward6 = await staking.calculateRewards(user3.address, 5);
-      const tx6 = await staking.connect(user3).harvest(5);
-
-      expect(tx1).to.changeTokenBalance(keter, user1, reward1.toString());
-      expect((await staking.stakes(user1.address, 0))[2]).to.be.closeTo(reward1.toString(), 1);
-
-      expect(tx2).to.changeTokenBalance(keter, user1, reward2.toString());
-      expect((await staking.stakes(user1.address, 1))[2]).to.be.closeTo(reward2.toString(), 1);
-
-      expect(tx3).to.changeTokenBalance(keter, user2, reward3.toString());
-      expect((await staking.stakes(user2.address, 2))[2]).to.be.closeTo(reward3.toString(), 1);
-
-      expect(tx4).to.changeTokenBalance(keter, user2, reward4.toString());
-      expect((await staking.stakes(user2.address, 3))[2]).to.be.closeTo(reward4.toString(), 1);
-
-      expect(tx5).to.changeTokenBalance(keter, user3, reward5.toString());
-      expect((await staking.stakes(user3.address, 4))[2]).to.be.closeTo(reward5.toString(), 1);
-
-      expect(tx6).to.changeTokenBalance(keter, user3, reward6.toString());
-      expect((await staking.stakes(user3.address, 5))[2]).to.be.closeTo(reward6.toString(), 1);
-    });
-    it("harvest twice", async () => {
-      const reward1 = await staking.calculateRewards(user1.address, 0);
-      let tx = await staking.connect(user1).harvest(0);
-
-      expect(tx).to.changeTokenBalance(keter, user1, reward1.toString());
-      expect((await staking.stakes(user1.address, 0))[2]).to.be.closeTo(reward1.toString(), 1);
+      const balanceBefore = await keter.balanceOf(user1.address);
 
       await advanceBlockTo(2000);
 
-      const reward2 = await staking.calculateRewards(user1.address, 0);
-      tx = await staking.connect(user1).harvest(0);
+      tx = await staking.connect(user1).getReward();
+      expect(await staking.rewards(user1.address)).to.equal(0);
+      const balanceAfter = await keter.balanceOf(user1.address);
 
-      const totalHarvested = Number(reward1) + Number(reward2);
-
-      expect(tx).to.changeTokenBalance(keter, user1, reward2.toString());
-      expect((await staking.stakes(user1.address, 0))[2].toNumber()).to.be.closeTo(totalHarvested, 1);
-    });
-  });
-  describe("harvestBatch", async () => {
-    beforeEach("setup", async () => {
-      await scion.connect(user1).approve(staking.address, 0);
-      await staking.connect(user1).stakeNFT(0);
-
-      await scion.connect(user1).approve(staking.address, 1);
-      await staking.connect(user1).stakeNFT(1);
-
-      await scion.connect(user2).approve(staking.address, 2);
-      await staking.connect(user2).stakeNFT(2);
-
-      await scion.connect(user2).approve(staking.address, 3);
-      await staking.connect(user2).stakeNFT(3);
-
-      await scion.connect(user3).approve(staking.address, 4);
-      await staking.connect(user3).stakeNFT(4);
-
-      await scion.connect(user3).approve(staking.address, 5);
-      await staking.connect(user3).stakeNFT(5);
-
-      await advanceBlockTo(2000);
-    });
-    it("reverts if too many token to unstake", async () => {
-      const reason = "Staking: Maximum amount of token ids exceeded";
-
-      const indexes = Array(101).fill(0);
-
-      await expect(staking.connect(user1).harvestBatch(indexes)).to.be.revertedWith(reason);
-    });
-    it("reverts if not staked", async () => {
-      const reason = "Staking: No stake with this token id";
-
-      await expect(staking.connect(user3).harvestBatch([0])).to.be.revertedWith(reason);
-    });
-    it("harvest batch successfully", async () => {
-      const reward1 = await staking.calculateRewards(user1.address, 0);
-      const reward2 = await staking.calculateRewards(user1.address, 1);
-      const tx1 = await staking.connect(user1).harvestBatch([0, 1]);
-
-      const reward3 = await staking.calculateRewards(user2.address, 2);
-      const reward4 = await staking.calculateRewards(user2.address, 3);
-      const tx2 = await staking.connect(user2).harvestBatch([2, 3]);
-
-      const reward5 = await staking.calculateRewards(user3.address, 4);
-      const reward6 = await staking.calculateRewards(user3.address, 5);
-      const tx3 = await staking.connect(user3).harvestBatch([4, 5]);
-
-      expect(tx1).to.changeTokenBalance(keter, user1, toBN(reward1).plus(reward2).toString());
-      expect((await staking.stakes(user1.address, 0))[2]).to.be.closeTo(reward1.toString(), 1);
-      expect((await staking.stakes(user1.address, 1))[2]).to.be.closeTo(reward2.toString(), 1);
-
-      expect(tx2).to.changeTokenBalance(keter, user2, toBN(reward3).plus(reward4).toString());
-      expect((await staking.stakes(user2.address, 2))[2]).to.be.closeTo(reward3.toString(), 1);
-      expect((await staking.stakes(user2.address, 3))[2]).to.be.closeTo(reward4.toString(), 1);
-
-      expect(tx3).to.changeTokenBalance(keter, user3, toBN(reward5).plus(reward6).toString());
-      expect((await staking.stakes(user3.address, 4))[2]).to.be.closeTo(reward5.toString(), 1);
-      expect((await staking.stakes(user3.address, 5))[2]).to.be.closeTo(reward6.toString(), 1);
-    });
-    it("harvest batch twice", async () => {
-      const reward1 = await staking.calculateRewards(user1.address, 0);
-      let tx = await staking.connect(user1).harvestBatch([0]);
-
-      expect(tx).to.changeTokenBalance(keter, user1, reward1.toString());
-      expect((await staking.stakes(user1.address, 0))[2]).to.be.closeTo(reward1.toString(), 1);
-
-      await advanceBlockTo(2000);
-
-      const reward2 = await staking.calculateRewards(user1.address, 0);
-      tx = await staking.connect(user1).harvestBatch([0]);
-
-      const totalHarvested = Number(reward1) + Number(reward2);
-
-      expect(tx).to.changeTokenBalance(keter, user1, reward2.toString());
-      expect((await staking.stakes(user1.address, 0))[2].toNumber()).to.be.closeTo(totalHarvested, 1);
+      expect(Number(balanceAfter)).to.be.greaterThan(Number(balanceBefore));
     });
   });
 });

@@ -5,152 +5,149 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-// @title NFT Staking
-/// @author Karan J Goraniya
-/// @notice You can use this contract for only the most basic simulation
-/// @dev All function calls are currently implemented without side effects
+/// @title NFT Staking
+/// @dev written with the help of https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
 
-contract Staking is ERC721Holder {
+contract Staking is ERC721Holder, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
-    IERC721 public NFTItem;
+    using SafeMath for uint256;
     using SafeERC20 for IERC20;
-    IERC20 public token;
-    uint256 private _totalTokens;
+
+    IERC20 public keter;
+    IERC721 public scion;
 
     uint256 public rewardPerBlock = 3;
-    uint256 public month = 172800;
-    uint256 public totalStakers;
-    uint256 public constant DENO = 100;
+    uint256 public totalNFTStaked;
+    uint256 public lastBlockUpdate;
+    uint256 public rewardPerTokenStored;
 
-    mapping(address => EnumerableSet.UintSet) internal _stakedTokensByUser;
-
-    struct Staker {
-        bool staked;
-        uint256 blocknumber;
-        uint256 harvested;
+    struct Stake {
+        EnumerableSet.UintSet stakedTokenIds;
+        uint256 userRewardPerTokenPaid;
+        uint256 rewards;
     }
 
-    mapping(address => mapping(uint256 => Staker)) public stakes;
+    mapping(address => Stake) internal _stakes;
 
-    constructor(address _token, address _NFTItem) {
-        token = IERC20(_token);
-        NFTItem = IERC721(_NFTItem);
+    constructor(address keterAddress, address scionAddress) updateReward(address(0)) {
+        keter = IERC20(keterAddress);
+        scion = IERC721(scionAddress);
     }
 
-    event Stake(address indexed owner, uint256 id, uint256 block);
-    event UnStake(address indexed owner, uint256 id, uint256 block, uint256 rewardTokens);
+    event StakeNFT(address indexed owner, uint256 id, uint256 block);
+    event UnStakeNFT(address indexed owner, uint256 id, uint256 block);
 
-    function getStakedTokenIdsByUser(address _user)
-        public
-        view
-        returns (uint256[] memory stakedTokensByUser)
-    {
-        uint256 count = _stakedTokensByUser[_user].length();
-        stakedTokensByUser = new uint256[](count);
-        for (uint256 i = 0; i < count; i++) {
-            uint256 tokenId = _stakedTokensByUser[_user].at(i);
-            stakedTokensByUser[i] = tokenId;
+    modifier updateReward(address _account) {
+        rewardPerTokenStored = rewardPerToken();
+        lastBlockUpdate = block.number;
+
+        if (_account != address(0)) {
+            _stakes[_account].rewards = earned(_account);
+            _stakes[_account].userRewardPerTokenPaid = rewardPerTokenStored;
         }
+        _;
     }
 
-    // @notice It will calculate the rate of the token reward
-    // @dev It will block.timestamp to track the time.
-    // @return Return the reward rate %
-
-    function calculateRewards(address _user, uint256 _tokenId) public view returns (uint256) {
-        uint256 _blocksPassed = block.number - stakes[_user][_tokenId].blocknumber;
-
+    function rewardPerToken() public view returns (uint256) {
+        if (totalNFTStaked == 0) {
+            return rewardPerTokenStored;
+        }
         return
-            totalStakers == 0
-                ? 0
-                : ((_blocksPassed * rewardPerBlock) / totalStakers) -
-                    stakes[_user][_tokenId].harvested;
+            rewardPerTokenStored.add(
+                (block.number.sub(lastBlockUpdate)).mul(rewardPerBlock).mul(1e18).div(
+                    totalNFTStaked
+                )
+            );
+    }
+
+    function earned(address _account) public view returns (uint256) {
+        return
+            _stakes[_account]
+                .stakedTokenIds
+                .length()
+                .mul(rewardPerToken().sub(_stakes[_account].userRewardPerTokenPaid))
+                .div(1e18)
+                .add(_stakes[_account].rewards);
     }
 
     function stakeNFTs(uint256[] memory _tokenIds) external {
         require(_tokenIds.length <= 100, "Staking: Maximum amount of token ids exceeded");
 
         for (uint256 i; i < _tokenIds.length; i++) {
-            stakeNFT(_tokenIds[i]);
+            _stakeNFT(_tokenIds[i]);
         }
     }
 
-    // @notice It will give user to stake the NFT.
-    // @dev It will confirm the you have enough NFT to stake.
-    // @param It will take Token Id of NFT & Amount.
+    function stakeNFT(uint256 _tokenId) external {
+        _stakeNFT(_tokenId);
+    }
 
-    function stakeNFT(uint256 _tokenId) public {
-        require(NFTItem.ownerOf(_tokenId) == msg.sender, "you dont own this token");
+    function _stakeNFT(uint256 _tokenId) internal nonReentrant updateReward(msg.sender) {
+        require(scion.ownerOf(_tokenId) == msg.sender, "you dont own this token");
 
-        stakes[msg.sender][_tokenId] = Staker(true, block.number, 0);
-        NFTItem.safeTransferFrom(msg.sender, address(this), _tokenId, "0x00");
+        _stakes[msg.sender].stakedTokenIds.add(_tokenId);
+        scion.safeTransferFrom(msg.sender, address(this), _tokenId, "0x00");
 
-        _stakedTokensByUser[msg.sender].add(_tokenId);
+        totalNFTStaked++;
 
-        totalStakers++;
-
-        emit Stake(msg.sender, _tokenId, block.number);
+        emit StakeNFT(msg.sender, _tokenId, block.number);
     }
 
     function unStakeNFTs(uint256[] memory _tokenIds) external {
         require(_tokenIds.length <= 100, "Staking: Maximum amount of token ids exceeded");
 
         for (uint256 i; i < _tokenIds.length; i++) {
-            unStakeNFT(_tokenIds[i]);
+            _unStakeNFT(_tokenIds[i]);
         }
     }
 
-    // // @notice It will unstake the NFT and distribute the token reward.
-    // // @dev It will calculate the reward with calculateRate() and distribute token using IERC20.
-    // // @param It will take Token Id of NFT & Amount.
-    // // Reward amount = Staked Amount * Reward Rate * TimeDiff / RewardInterval
+    function unStakeNFT(uint256 _tokenId) external {
+        _unStakeNFT(_tokenId);
+    }
 
-    function unStakeNFT(uint256 _tokenId) public {
+    function _unStakeNFT(uint256 _tokenId) internal nonReentrant updateReward(msg.sender) {
         require(
-            stakes[msg.sender][_tokenId].staked == true,
+            _stakes[msg.sender].stakedTokenIds.contains(_tokenId),
             "Staking: No stake with this token id"
         );
-        NFTItem.safeTransferFrom(address(this), msg.sender, _tokenId, "0x00");
 
-        uint256 reward = calculateRewards(msg.sender, _tokenId);
+        _stakes[msg.sender].stakedTokenIds.remove(_tokenId);
+        scion.safeTransferFrom(address(this), msg.sender, _tokenId, "0x00");
 
-        token.safeTransfer(msg.sender, reward);
+        totalNFTStaked--;
 
-        _stakedTokensByUser[msg.sender].remove(_tokenId);
-
-        stakes[msg.sender][_tokenId].staked = false;
-
-        totalStakers--;
-
-        emit UnStake(msg.sender, _tokenId, block.number, reward);
+        emit UnStakeNFT(msg.sender, _tokenId, block.number);
     }
 
-    function harvestBatch(uint256[] memory _tokenIds) public {
-        require(_tokenIds.length <= 100, "Staking: Maximum amount of token ids exceeded");
-        uint256 rewards;
-        uint256 rewardPerToken;
-
-        for (uint256 i; i < _tokenIds.length; i++) {
-            require(
-                stakes[msg.sender][_tokenIds[i]].staked,
-                "Staking: No stake with this token id"
-            );
-
-            rewardPerToken = calculateRewards(msg.sender, _tokenIds[i]);
-            rewards += rewardPerToken;
-
-            stakes[msg.sender][_tokenIds[i]].harvested += rewardPerToken;
+    function getReward() external nonReentrant updateReward(msg.sender) {
+        uint256 reward = _stakes[msg.sender].rewards;
+        if (reward > 0) {
+            _stakes[msg.sender].rewards = 0;
+            keter.safeTransfer(msg.sender, reward);
         }
-
-        token.safeTransfer(msg.sender, rewards);
     }
 
-    function harvest(uint256 _tokenId) public {
-        require(stakes[msg.sender][_tokenId].staked, "Staking: No stake with this token id");
-        uint256 reward = calculateRewards(msg.sender, _tokenId);
-        stakes[msg.sender][_tokenId].harvested += reward;
+    function getStakedTokenIdsByUser(address _account)
+        public
+        view
+        returns (uint256[] memory stakedTokensByUser)
+    {
+        uint256 count = _stakes[_account].stakedTokenIds.length();
+        stakedTokensByUser = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            uint256 tokenId = _stakes[_account].stakedTokenIds.at(i);
+            stakedTokensByUser[i] = tokenId;
+        }
+    }
 
-        token.safeTransfer(msg.sender, reward);
+    function userRewardPerTokenPaid(address _account) public view returns (uint256) {
+        return _stakes[_account].userRewardPerTokenPaid;
+    }
+
+    function rewards(address _account) public view returns (uint256) {
+        return _stakes[_account].rewards;
     }
 }
