@@ -153,42 +153,43 @@ contract Scion is Ownable, ERC721Enumerable {
     }
 
     function rerollPrice(uint256 _tokenId, uint256 _assetId) public view returns (uint256 _price) {
-        IAssetRegistry.AssetInfo memory _assetTemp = _assetId == 0
-            ? scionsData[_tokenId].background
-            : (
-                _assetId == 1
-                    ? scionsData[_tokenId].halo
-                    : (
-                        _assetId == 2
-                            ? scionsData[_tokenId].head
-                            : (
-                                _assetId == 3
-                                    ? scionsData[_tokenId].body
-                                    : (
-                                        _assetId == 4
-                                            ? scionsData[_tokenId].wings
-                                            : (
-                                                _assetId == 5
-                                                    ? scionsData[_tokenId].hands
-                                                    : scionsData[_tokenId].sigil
-                                            )
-                                    )
-                            )
-                    )
-            );
+        IAssetRegistry.AssetInfo memory _assetTemp;
+        if (_assetId == 0) {
+            _assetTemp = scionsData[_tokenId].background;
+        }
+        if (_assetId == 1) {
+            _assetTemp = scionsData[_tokenId].halo;
+        }
+        if (_assetId == 2) {
+            _assetTemp = scionsData[_tokenId].head;
+        }
+        if (_assetId == 3) {
+            _assetTemp = scionsData[_tokenId].body;
+        }
+        if (_assetId == 4) {
+            _assetTemp = scionsData[_tokenId].wings;
+        }
+        if (_assetId == 5) {
+            _assetTemp = scionsData[_tokenId].hands;
+        }
+        if (_assetId == 6) {
+            _assetTemp = scionsData[_tokenId].sigil;
+        }
 
         uint256[] memory _weightsForType = assetsRegistry.uniqueWeightsForType(_assetId);
-        uint256 _weightWanted = _weightsForType[
-            (assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) ==
-                _weightsForType.length - 1)
-                ? assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight)
-                : assetsRegistry.uniqueWeightsForTypeIndexes(_assetId, _assetTemp.weight) + 1
-        ];
+        uint256 _actualWeight = _assetTemp.weight;
+        uint256 _wantedWeight = _weightsForType[_weightsForType.length - 1];
+
+        for (uint256 i = 0; i < _weightsForType.length - 1; i++) {
+            if (_actualWeight == _weightsForType[i]) {
+                _wantedWeight = _weightsForType[i + 1];
+            }
+        }
+
         _price =
             MAX_WEIGHT -
-            _assetTemp.weight +
-            _weightWanted +
-            ((_assetTemp.weight + _weightWanted) / _weightWanted**2);
+            (_actualWeight + _wantedWeight) +
+            ((_actualWeight - _wantedWeight) / _wantedWeight**2);
     }
 
     function burnForSoul(uint256 tokenId) external {
