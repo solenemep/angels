@@ -328,12 +328,14 @@ contract Scion is Ownable, ERC721Enumerable {
         uint256 _previousWeight;
         uint256 _newWeight;
         string memory _newAsset;
+        uint256 _newAssetIndex;
 
         if (_assetId == 0) {
             _previousWeight = scionsData[_tokenId].background.weight;
             scionsData[_tokenId].background = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].background.weight;
             _newAsset = scionsData[_tokenId].background.asset;
+            _newAssetIndex = scionsData[_tokenId].background.assetIndex;
         }
 
         if (_assetId == 1) {
@@ -341,6 +343,7 @@ contract Scion is Ownable, ERC721Enumerable {
             scionsData[_tokenId].halo = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].halo.weight;
             _newAsset = scionsData[_tokenId].halo.asset;
+            _newAssetIndex = scionsData[_tokenId].halo.assetIndex;
         }
 
         if (_assetId == 2) {
@@ -348,6 +351,7 @@ contract Scion is Ownable, ERC721Enumerable {
             scionsData[_tokenId].head = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].head.weight;
             _newAsset = scionsData[_tokenId].head.asset;
+            _newAssetIndex = scionsData[_tokenId].head.assetIndex;
         }
 
         if (_assetId == 3) {
@@ -355,6 +359,7 @@ contract Scion is Ownable, ERC721Enumerable {
             scionsData[_tokenId].body = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].body.weight;
             _newAsset = scionsData[_tokenId].body.asset;
+            _newAssetIndex = scionsData[_tokenId].body.assetIndex;
         }
 
         if (_assetId == 4) {
@@ -362,6 +367,7 @@ contract Scion is Ownable, ERC721Enumerable {
             scionsData[_tokenId].wings = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].wings.weight;
             _newAsset = scionsData[_tokenId].wings.asset;
+            _newAssetIndex = scionsData[_tokenId].wings.assetIndex;
         }
 
         if (_assetId == 5) {
@@ -369,6 +375,7 @@ contract Scion is Ownable, ERC721Enumerable {
             scionsData[_tokenId].hands = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].hands.weight;
             _newAsset = scionsData[_tokenId].hands.asset;
+            _newAssetIndex = scionsData[_tokenId].hands.assetIndex;
         }
 
         if (_assetId == 6) {
@@ -376,19 +383,22 @@ contract Scion is Ownable, ERC721Enumerable {
             scionsData[_tokenId].sigil = setWeightChange(_assetId, _assetIndex, _state);
             _newWeight = scionsData[_tokenId].sigil.weight;
             _newAsset = scionsData[_tokenId].sigil.asset;
+            _newAssetIndex = scionsData[_tokenId].sigil.assetIndex;
         }
 
-        emit Reroll(
-            _tokenId,
-            _assetId,
-            _previousWeight,
-            int256(_newWeight),
-            _newAsset,
-            scionsData[_tokenId],
-            _price,
-            block.timestamp,
-            msg.sender
-        );
+        if (_assetIndex != _newAssetIndex) {
+            emit Reroll(
+                _tokenId,
+                _assetId,
+                _previousWeight,
+                int256(_newWeight),
+                _newAsset,
+                scionsData[_tokenId],
+                _price,
+                block.timestamp,
+                msg.sender
+            );
+        }
     }
 
     function rerollAsset(uint256 tokenId, uint256 assetId) public {
