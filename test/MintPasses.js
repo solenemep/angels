@@ -309,6 +309,11 @@ describe("MintPasses", async () => {
         mintPasses.connect(user1).updateBid(1, valueUpdate, { value: toBN(0).toString() })
       ).to.be.revertedWith(reason);
     });
+    it("reverts if not correct parameter", async () => {
+      const reason = "There is not enough funds to update bid";
+
+      await expect(mintPasses.connect(user2).updateBid(1, 0, { value: valueUpdate })).to.be.revertedWith(reason);
+    });
     it("reverts if not owner of bid", async () => {
       const reason = "Not the owner of the bid";
 

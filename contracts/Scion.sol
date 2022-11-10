@@ -156,23 +156,17 @@ contract Scion is Ownable, ERC721Enumerable {
         IAssetRegistry.AssetInfo memory _assetTemp;
         if (_assetId == 0) {
             _assetTemp = scionsData[_tokenId].background;
-        }
-        if (_assetId == 1) {
+        } else if (_assetId == 1) {
             _assetTemp = scionsData[_tokenId].halo;
-        }
-        if (_assetId == 2) {
+        } else if (_assetId == 2) {
             _assetTemp = scionsData[_tokenId].head;
-        }
-        if (_assetId == 3) {
+        } else if (_assetId == 3) {
             _assetTemp = scionsData[_tokenId].body;
-        }
-        if (_assetId == 4) {
+        } else if (_assetId == 4) {
             _assetTemp = scionsData[_tokenId].wings;
-        }
-        if (_assetId == 5) {
+        } else if (_assetId == 5) {
             _assetTemp = scionsData[_tokenId].hands;
-        }
-        if (_assetId == 6) {
+        } else if (_assetId == 6) {
             _assetTemp = scionsData[_tokenId].sigil;
         }
 
@@ -477,23 +471,17 @@ contract Scion is Ownable, ERC721Enumerable {
                 );
                 if (_assetId == 0) {
                     scionsData[_tokenId].background = newAsset;
-                }
-                if (_assetId == 1) {
+                } else if (_assetId == 1) {
                     scionsData[_tokenId].halo = newAsset;
-                }
-                if (_assetId == 2) {
+                } else if (_assetId == 2) {
                     scionsData[_tokenId].head = newAsset;
-                }
-                if (_assetId == 3) {
+                } else if (_assetId == 3) {
                     scionsData[_tokenId].body = newAsset;
-                }
-                if (_assetId == 4) {
+                } else if (_assetId == 4) {
                     scionsData[_tokenId].wings = newAsset;
-                }
-                if (_assetId == 5) {
+                } else if (_assetId == 5) {
                     scionsData[_tokenId].hands = newAsset;
-                }
-                if (_assetId == 6) {
+                } else if (_assetId == 6) {
                     scionsData[_tokenId].sigil = newAsset;
                 }
                 break;
