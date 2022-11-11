@@ -346,17 +346,12 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
         }
     }
 
-    function updateBid(uint256 bidIndex, uint256 bidValue)
-        external
-        payable
-        onlyActive
-        nonReentrant
-    {
-        require(msg.value == bidValue, "There is not enough funds to update bid");
+    function updateBid(uint256 bidIndex) external payable onlyActive nonReentrant {
+        require(msg.value > 0, "There is not enough funds to update bid");
         require(_msgSender() == bidInfos[bidIndex].bidder, "Not the owner of the bid");
         uint256 lastBidValue = bidInfos[bidIndex].bidValue;
 
-        bidInfos[bidIndex].bidValue = bidInfos[bidIndex].bidValue.add(bidValue);
+        bidInfos[bidIndex].bidValue = bidInfos[bidIndex].bidValue.add(msg.value);
         bidInfos[bidIndex].timestamp = block.timestamp;
 
         emit BidUpdated(

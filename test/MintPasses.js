@@ -287,43 +287,28 @@ describe("MintPasses", async () => {
 
       await mintPasses.connect(owner).finishAuction();
 
-      await expect(mintPasses.connect(user1).updateBid(1, valueUpdate, { value: valueUpdate })).to.be.revertedWith(
-        reason
-      );
+      await expect(mintPasses.connect(user1).updateBid(1, { value: valueUpdate })).to.be.revertedWith(reason);
     });
     it("reverts if inexistant bid", async () => {
       const reason = "Not the owner of the bid";
 
-      await expect(mintPasses.connect(user1).updateBid(0, valueUpdate, { value: valueUpdate })).to.be.revertedWith(
-        reason
-      );
+      await expect(mintPasses.connect(user1).updateBid(0, { value: valueUpdate })).to.be.revertedWith(reason);
 
-      await expect(mintPasses.connect(user1).updateBid(2, valueUpdate, { value: valueUpdate })).to.be.revertedWith(
-        reason
-      );
+      await expect(mintPasses.connect(user1).updateBid(2, { value: valueUpdate })).to.be.revertedWith(reason);
     });
     it("reverts if not enough funds", async () => {
       const reason = "There is not enough funds to update bid";
 
-      await expect(
-        mintPasses.connect(user1).updateBid(1, valueUpdate, { value: toBN(0).toString() })
-      ).to.be.revertedWith(reason);
-    });
-    it("reverts if not correct parameter", async () => {
-      const reason = "There is not enough funds to update bid";
-
-      await expect(mintPasses.connect(user2).updateBid(1, 0, { value: valueUpdate })).to.be.revertedWith(reason);
+      await expect(mintPasses.connect(user1).updateBid(1, { value: toBN(0).toString() })).to.be.revertedWith(reason);
     });
     it("reverts if not owner of bid", async () => {
       const reason = "Not the owner of the bid";
 
-      await expect(mintPasses.connect(user2).updateBid(1, valueUpdate, { value: valueUpdate })).to.be.revertedWith(
-        reason
-      );
+      await expect(mintPasses.connect(user2).updateBid(1, { value: valueUpdate })).to.be.revertedWith(reason);
     });
     it("update bid succcesfully", async () => {
       const time = await getTime();
-      const tx = await mintPasses.connect(user1).updateBid(1, valueUpdate, { value: valueUpdate });
+      const tx = await mintPasses.connect(user1).updateBid(1, { value: valueUpdate });
 
       expect(tx).to.changeEtherBalance(user1, -valueUpdate);
       expect(tx).to.changeEtherBalance(mintPasses, valueUpdate);
@@ -349,7 +334,7 @@ describe("MintPasses", async () => {
     });
     it("emits BidUpdated", async () => {
       await expect(
-        mintPasses.connect(user1).updateBid(1, valueUpdate, {
+        mintPasses.connect(user1).updateBid(1, {
           value: valueUpdate,
         })
       )
