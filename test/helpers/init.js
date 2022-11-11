@@ -28,6 +28,7 @@ const init = async (isFork) => {
   let keter;
   let soul;
   let archangel;
+  let watcher;
   let mintPassesHolder;
   let mintPasses;
   let scion;
@@ -52,6 +53,9 @@ const init = async (isFork) => {
     // ERC721
     const Archangel = await ethers.getContractFactory("Archangel");
     archangel = await Archangel.attach(addresses[network].archangelAddress);
+
+    const Watcher = await ethers.getContractFactory("Watcher");
+    watcher = await Watcher.attach(addresses[network].watcherAddress);
 
     const MintPasses = await ethers.getContractFactory("MintPasses", {
       libraries: {
@@ -94,6 +98,10 @@ const init = async (isFork) => {
     const Archangel = await ethers.getContractFactory("Archangel");
     archangel = await Archangel.deploy(soul.address);
     await archangel.deployed();
+
+    const Watcher = await ethers.getContractFactory("Watcher");
+    watcher = await Watcher.deploy(soul.address);
+    await watcher.deployed();
 
     const MintPasses = await ethers.getContractFactory("MintPasses", {
       libraries: {
@@ -150,6 +158,7 @@ const init = async (isFork) => {
     keter,
     soul,
     archangel,
+    watcher,
     mintPasses,
     mintPassesHolder,
     scion,

@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./Soul.sol";
 
-contract Archangel is Ownable, ERC721Enumerable, ReentrancyGuard {
+contract Watcher is Ownable, ERC721Enumerable, ReentrancyGuard {
     // Mint, receives the minting pass NFT, burns it to create a Scion
     using Counters for Counters.Counter;
     using Strings for uint256;
@@ -30,9 +30,9 @@ contract Archangel is Ownable, ERC721Enumerable, ReentrancyGuard {
 
     mapping(uint256 => bool) public openToSale; // tokenId -> OK to be minted
 
-    event ArchangelMinted(address indexed user, uint256 indexed tokenId, uint256 timestamp);
+    event WatcherMinted(address indexed user, uint256 indexed tokenId, uint256 timestamp);
 
-    constructor(address _soul) ERC721("Archangel", "ARCH") {
+    constructor(address _soul) ERC721("Watcher", "ARCH") {
         soul = Soul(_soul);
     }
 
@@ -40,7 +40,7 @@ contract Archangel is Ownable, ERC721Enumerable, ReentrancyGuard {
         priceInSouls = _priceInSouls;
     }
 
-    function archangelsLeft() public view returns (uint256) {
+    function watcherssLeft() public view returns (uint256) {
         return BATCH - (latestClaimed + 1);
     }
 
@@ -53,7 +53,7 @@ contract Archangel is Ownable, ERC721Enumerable, ReentrancyGuard {
         }
     }
 
-    function _mintArchangel(
+    function _mintWatcher(
         address _buyer,
         uint256 _tokenId,
         string memory _tokenURI
@@ -80,9 +80,9 @@ contract Archangel is Ownable, ERC721Enumerable, ReentrancyGuard {
         }
     }
 
-    function claimArchangel() external nonReentrant {
+    function claimWatcher() external nonReentrant {
         uint256 newTokenId = _tokenIdTracker.current();
-        require(openToSale[newTokenId] == true, "No archangel on sale");
+        require(openToSale[newTokenId] == true, "No watcher on sale");
 
         _tokenIdTracker.increment();
         latestClaimed = newTokenId;
@@ -91,9 +91,9 @@ contract Archangel is Ownable, ERC721Enumerable, ReentrancyGuard {
         soul.safeTransferFrom(msg.sender, address(this), priceInSouls);
         soul.burn(priceInSouls);
 
-        _mintArchangel(msg.sender, newTokenId, "");
+        _mintWatcher(msg.sender, newTokenId, "");
 
-        emit ArchangelMinted(msg.sender, newTokenId, block.timestamp);
+        emit WatcherMinted(msg.sender, newTokenId, block.timestamp);
     }
 
     /**
