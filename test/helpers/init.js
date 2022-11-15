@@ -96,11 +96,11 @@ const init = async (isFork) => {
 
     // ERC721
     const Archangel = await ethers.getContractFactory("Archangel");
-    archangel = await Archangel.deploy(soul.address);
+    archangel = await Archangel.deploy(soul.address, "");
     await archangel.deployed();
 
     const Watcher = await ethers.getContractFactory("Watcher");
-    watcher = await Watcher.deploy(soul.address);
+    watcher = await Watcher.deploy(soul.address, "");
     await watcher.deployed();
 
     const MintPasses = await ethers.getContractFactory("MintPasses", {

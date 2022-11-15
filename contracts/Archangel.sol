@@ -23,12 +23,15 @@ contract Archangel is Angel, ERC721Enumerable {
     uint256 public priceInSouls = 444e18;
     Soul public soul;
 
+    string private _uri;
+
     mapping(uint256 => bool) public openToSale; // tokenId -> OK to be minted
 
     event ArchangelMinted(address indexed user, uint256 indexed tokenId, uint256 timestamp);
 
-    constructor(address _soul) ERC721("Archangel", "ARCH") {
+    constructor(address _soul, string memory _baseURIString) ERC721("Archangel", "ARCH") {
         soul = Soul(_soul);
+        _uri = _baseURIString;
     }
 
     function setPriceInSouls(uint256 _priceInSouls) external override {
@@ -81,6 +84,6 @@ contract Archangel is Angel, ERC721Enumerable {
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
-        return "";
+        return _uri;
     }
 }
