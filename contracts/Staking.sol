@@ -17,7 +17,7 @@ contract Staking is ERC721Holder, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public keter;
-    IERC721 public nft;
+    IERC721 public scion;
 
     uint256 public rewardPerBlock = 3;
     uint256 public totalNFTStaked;
@@ -34,7 +34,7 @@ contract Staking is ERC721Holder, ReentrancyGuard {
 
     constructor(address keterAddress, address NFTAddress) updateReward(address(0)) {
         keter = IERC20(keterAddress);
-        nft = IERC721(NFTAddress);
+        scion = IERC721(NFTAddress);
     }
 
     event StakeNFT(address indexed owner, uint256 id, uint256 block);
@@ -86,10 +86,10 @@ contract Staking is ERC721Holder, ReentrancyGuard {
     }
 
     function _stakeNFT(uint256 _tokenId) internal nonReentrant updateReward(msg.sender) {
-        require(nft.ownerOf(_tokenId) == msg.sender, "you dont own this token");
+        require(scion.ownerOf(_tokenId) == msg.sender, "you dont own this token");
 
         _stakes[msg.sender].stakedTokenIds.add(_tokenId);
-        nft.safeTransferFrom(msg.sender, address(this), _tokenId, "0x00");
+        scion.safeTransferFrom(msg.sender, address(this), _tokenId, "0x00");
 
         totalNFTStaked++;
 
@@ -115,7 +115,7 @@ contract Staking is ERC721Holder, ReentrancyGuard {
         );
 
         _stakes[msg.sender].stakedTokenIds.remove(_tokenId);
-        nft.safeTransferFrom(address(this), msg.sender, _tokenId, "0x00");
+        scion.safeTransferFrom(address(this), msg.sender, _tokenId, "0x00");
 
         totalNFTStaked--;
 
