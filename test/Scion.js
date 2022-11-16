@@ -315,7 +315,7 @@ describe("Scion", async () => {
     });
   });
 
-  describe.only("burnForSoul", async () => {
+  describe("burnForSoul", async () => {
     beforeEach("setup", async () => {
       await scion.connect(user1).claimScion(0);
       await scion.connect(user2).claimScion(1);
