@@ -499,7 +499,6 @@ async function main() {
   const Archangel = await hre.ethers.getContractFactory("Archangel");
   const archangel = await Archangel.deploy(
     soul.address,
-    toWei("444"),
     "https://backend.devangelproject.com/api/archangels/metadata/"
   );
 
@@ -508,11 +507,16 @@ async function main() {
   const Watcher = await hre.ethers.getContractFactory("Archangel");
   const watcher = await Watcher.deploy(
     soul.address,
-    toWei("444"),
     "https://backend.devangelproject.com/api/watchers/metadata/"
   );
 
-  console.log("Archangel address:", watcher.address);
+  console.log("Watcher address:", watcher.address);
+
+  if (hre.network.name === "mumbai") {
+    tx = await watcher.triggerBatchSale(toWei("444"));
+
+    await tx.wait();
+  }
 
   const Staking = await hre.ethers.getContractFactory("Staking");
   const staking = await Staking.deploy(keter.address, scion.address);

@@ -33,11 +33,9 @@ contract Creature is Ownable, ReentrancyGuard, ERC721 {
         string memory _name,
         string memory _symbol,
         address _soul,
-        uint256 _priceInSouls,
         string memory _uriBase
     ) ERC721(_name, _symbol) {
         soul = Soul(_soul);
-        priceInSouls = _priceInSouls;
         _uri = _uriBase;
     }
 

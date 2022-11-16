@@ -10,6 +10,7 @@ describe("Creature", async () => {
   let archangel;
   let watcher;
   let user1, user2, user3, user4, user5, user6;
+  let priceInSouls;
 
   before("setup", async () => {
     const setups = await init(false);
@@ -48,19 +49,19 @@ describe("Creature", async () => {
       } else if (setup == "watcher") {
         creature = watcher;
       }
+
+      priceInSouls = toWei("444");
     });
 
     describe("triggerBatchSale", async () => {
       it("does not mint creature if not open to sale", async () => {
         const reason = "Price should be higher than 0";
 
-        const priceInSouls = 0;
+        priceInSouls = 0;
 
         await expect(creature.triggerBatchSale(priceInSouls)).to.be.revertedWith(reason);
       });
       it(`open sale for batch of 7 ${setup} x1`, async () => {
-        const priceInSouls = await creature.priceInSouls();
-
         for (let i = 0; i < 7; i++) {
           expect(await creature.isOnSale(i)).to.equal(false);
         }
@@ -114,8 +115,6 @@ describe("Creature", async () => {
         expect(await creature.currentBacthIndex()).to.equal(1);
       });
       it(`open sale for batch of 7 ${setup} x2`, async () => {
-        const priceInSouls = await creature.priceInSouls();
-
         // 1
         await creature.triggerBatchSale(priceInSouls);
         expect(await creature.currentBacthIndex()).to.equal(1);
@@ -190,8 +189,6 @@ describe("Creature", async () => {
         expect(await creature.currentBacthIndex()).to.equal(2);
       });
       it(`open sale for batch of 7 ${setup} x3`, async () => {
-        const priceInSouls = await creature.priceInSouls();
-
         // 1
         await creature.triggerBatchSale(priceInSouls);
         expect(await creature.currentBacthIndex()).to.equal(1);
@@ -289,14 +286,10 @@ describe("Creature", async () => {
       it("does not mint creature if not open to sale", async () => {
         const reason = "No creature on sale";
 
-        const priceInSouls = await creature.priceInSouls();
-
         await soul.connect(user1).approve(creature.address, priceInSouls);
         await expect(creature.connect(user1).claimCreature()).to.be.revertedWith(reason);
       });
       it("mint creature succesfully", async () => {
-        const priceInSouls = await creature.priceInSouls();
-
         await creature.triggerBatchSale(priceInSouls);
 
         expect(await creature.currentBatchMinted()).to.equal(0);
@@ -373,8 +366,6 @@ describe("Creature", async () => {
         expect(await creature.ownerOf(6)).to.equal(user4.address);
       });
       it("emit CreatureMinted event", async () => {
-        const priceInSouls = await creature.priceInSouls();
-
         await creature.triggerBatchSale(priceInSouls);
 
         await soul.connect(user1).approve(creature.address, priceInSouls);
