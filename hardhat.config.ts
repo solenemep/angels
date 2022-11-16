@@ -39,6 +39,7 @@ module.exports = {
 
   networks: {
     hardhat: {
+      // allowUnlimitedContractSize: true,
       forking: {
         url: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`,
         accounts: accountsTestnet,

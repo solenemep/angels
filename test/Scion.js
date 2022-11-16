@@ -224,6 +224,23 @@ describe("Scion", async () => {
     });
   });
 
+  describe("rerollPrice", async () => {
+    beforeEach("setup", async () => {
+      await scion.connect(user1).claimScion(0);
+      await scion.connect(user2).claimScion(1);
+      await scion.connect(user3).claimScion(2);
+      await scion.connect(user4).claimScion(3);
+      await scion.connect(user5).claimScion(4);
+      await scion.connect(user6).claimScion(5);
+    });
+
+    it("gets high price to reroll wings for BRONZE", async () => {
+      const price = toWei((await scion.rerollPrice(0, 4)).toString());
+
+      expect((price / 10 ** 18).toString()).to.equal("1499");
+    });
+  });
+
   describe("rerollAsset", async () => {
     beforeEach("setup", async () => {
       await scion.connect(user1).claimScion(0);

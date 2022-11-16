@@ -363,20 +363,6 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
         );
     }
 
-    function cancelBid(uint256 bidIndex) external onlyInactive onlyIfClassSet nonReentrant {
-        require(_msgSender() == bidInfos[bidIndex].bidder, "Not the owner of the bid");
-        require(!bidInfos[bidIndex].claimed, "Already cancelced or claimed");
-        uint256 bidValue = bidInfos[bidIndex].bidValue;
-
-        _allBids.remove(bidIndex);
-        _ownedBids[_msgSender()].remove(bidIndex);
-
-        bidInfos[bidIndex].claimed = true;
-
-        payable(_msgSender()).transfer(bidValue);
-        emit BidCanceled(_msgSender(), bidValue, bidIndex, block.timestamp);
-    }
-
     /**
      * @dev See {IERC165-supportsInterface}.
      */

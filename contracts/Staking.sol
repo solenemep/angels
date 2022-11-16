@@ -69,7 +69,6 @@ contract Staking is ERC721Holder, ReentrancyGuard {
                 .stakedTokenIds
                 .length()
                 .mul(rewardPerToken().sub(_stakes[_account].userRewardPerTokenPaid))
-                .div(1e18)
                 .add(_stakes[_account].rewards);
     }
 
