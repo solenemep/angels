@@ -11,7 +11,7 @@ abstract contract Angel is Ownable, ReentrancyGuard {
 
     function getBatchIndex() external view virtual returns (uint256) {}
 
-    function triggerBatchSale() external virtual onlyOwner {}
+    function triggerBatchSale(uint256 _priceInSouls) external virtual onlyOwner {}
 
     function claimAngel() external virtual nonReentrant {}
 }

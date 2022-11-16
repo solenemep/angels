@@ -65,7 +65,7 @@ describe("Angel", async () => {
         expect(await angel.angelsLeft()).to.equal(0);
         expect(await angel.getBatchIndex()).to.equal(0);
 
-        await angel.triggerBatchSale();
+        await angel.triggerBatchSale(priceInSouls);
         expect(await angel.getBatchIndex()).to.equal(1);
 
         for (let i = 0; i < 7; i++) {
@@ -108,7 +108,7 @@ describe("Angel", async () => {
         const priceInSouls = await angel.priceInSouls();
 
         // 1
-        await angel.triggerBatchSale();
+        await angel.triggerBatchSale(priceInSouls);
         expect(await angel.getBatchIndex()).to.equal(1);
 
         await soul.connect(user1).approve(angel.address, priceInSouls);
@@ -135,7 +135,7 @@ describe("Angel", async () => {
         expect(await angel.getBatchIndex()).to.equal(1);
 
         // 2
-        await angel.triggerBatchSale();
+        await angel.triggerBatchSale(priceInSouls);
         expect(await angel.getBatchIndex()).to.equal(2);
 
         for (let i = 0; i < 7; i++) {
@@ -180,7 +180,7 @@ describe("Angel", async () => {
         const priceInSouls = await angel.priceInSouls();
 
         // 1
-        await angel.triggerBatchSale();
+        await angel.triggerBatchSale(priceInSouls);
         expect(await angel.getBatchIndex()).to.equal(1);
 
         await soul.connect(user1).approve(angel.address, priceInSouls);
@@ -199,7 +199,7 @@ describe("Angel", async () => {
         await angel.connect(user4).claimAngel();
 
         // 2
-        await angel.triggerBatchSale();
+        await angel.triggerBatchSale(priceInSouls);
         expect(await angel.getBatchIndex()).to.equal(2);
 
         await soul.connect(user1).approve(angel.address, priceInSouls);
@@ -226,7 +226,7 @@ describe("Angel", async () => {
         expect(await angel.getBatchIndex()).to.equal(2);
 
         // 3
-        await angel.triggerBatchSale();
+        await angel.triggerBatchSale(priceInSouls);
         expect(await angel.getBatchIndex()).to.equal(3);
 
         for (let i = 0; i < 14; i++) {
@@ -278,9 +278,9 @@ describe("Angel", async () => {
         await expect(angel.connect(user1).claimAngel()).to.be.revertedWith(reason);
       });
       it(`mint ${setup} succesfully`, async () => {
-        await angel.triggerBatchSale();
-
         const priceInSouls = await angel.priceInSouls();
+
+        await angel.triggerBatchSale(priceInSouls);
 
         expect(await angel.angelsLeft()).to.equal(7);
 
@@ -348,9 +348,9 @@ describe("Angel", async () => {
         expect(await angel.ownerOf(6)).to.equal(user4.address);
       });
       it("emit proper event", async () => {
-        await angel.triggerBatchSale();
-
         const priceInSouls = await angel.priceInSouls();
+
+        await angel.triggerBatchSale(priceInSouls);
 
         await soul.connect(user1).approve(angel.address, priceInSouls);
 

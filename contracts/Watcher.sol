@@ -20,7 +20,7 @@ contract Watcher is Angel, ERC721Enumerable {
 
     Counters.Counter private _tokenIdTracker;
 
-    uint256 public priceInSouls = 444e18;
+    uint256 public priceInSouls;
     Soul public soul;
 
     string private _uri;
@@ -31,6 +31,7 @@ contract Watcher is Angel, ERC721Enumerable {
 
     constructor(address _soul, string memory _baseURIString) ERC721("Watcher", "WATCH") {
         soul = Soul(_soul);
+        priceInSouls = 444e18;
         _uri = _baseURIString;
     }
 
@@ -54,7 +55,9 @@ contract Watcher is Angel, ERC721Enumerable {
         }
     }
 
-    function triggerBatchSale() external override {
+    function triggerBatchSale(uint256 _priceInSouls) external override {
+        priceInSouls = _priceInSouls;
+
         uint256 startTokenId = _tokenIdTracker.current();
         uint256 endTokenId = startTokenId + BATCH;
 
