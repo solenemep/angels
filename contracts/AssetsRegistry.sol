@@ -18,7 +18,6 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
 
     // asset type -> set of weights
     mapping(uint256 => uint256[]) public assetsUniqueWeights;
-    mapping(uint256 => mapping(uint256 => uint256)) public assetsUniqueWeightsIndexes;
 
     constructor() {}
 
@@ -45,8 +44,6 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
 
             if (_weights[i] != _previousWeight) {
                 _previousWeight = _weights[i];
-                assetsUniqueWeightsIndexes[_assetId][_weights[i]] = assetsUniqueWeights[_assetId]
-                    .length;
                 assetsUniqueWeights[_assetId].push(_weights[i]);
             }
 
@@ -131,15 +128,6 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
         for (uint256 i = 0; i < assetArray.length; i++) {
             totalWeightArray += assetArray[i].weight;
         }
-    }
-
-    function uniqueWeightsForTypeIndexes(uint256 _assetId, uint256 _weights)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return assetsUniqueWeightsIndexes[_assetId][_weights];
     }
 
     function uniqueWeightsForType(uint256 _assetId)

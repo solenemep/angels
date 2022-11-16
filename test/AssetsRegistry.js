@@ -42,13 +42,7 @@ describe("AssetsRegistry", async () => {
     it("uniqueWeightsForType", async () => {
       // set in init.js
       // console.log(await assetsRegistry.uniqueWeightsForType(0));
-    });
-    it("assetsUniqueWeightsIndexes", async () => {
-      // set in init.js
-      // console.log((await assetsRegistry.uniqueWeightsForTypeIndexes(0, 1000)).toString());
-      // console.log((await assetsRegistry.uniqueWeightsForTypeIndexes(0, 250)).toString());
-      // console.log((await assetsRegistry.uniqueWeightsForTypeIndexes(5, 100)).toString());
-      // console.log((await assetsRegistry.uniqueWeightsForTypeIndexes(6, 250)).toString());
+      // console.log(await assetsRegistry.uniqueWeightsForType(4));
     });
   });
   describe("getters", async () => {
