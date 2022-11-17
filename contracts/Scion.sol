@@ -186,10 +186,22 @@ contract Scion is Ownable, ERC721Enumerable {
             ((_actualWeight - _wantedWeight) / _wantedWeight**2);
     }
 
+    function getPricePerAsset(uint256 tokenId, uint256 assetWeight)
+        external
+        view
+        returns (uint256)
+    {
+        return getPriceEntireScion(tokenId).mul(assetWeight).div(getScionWeight(tokenId));
+    }
+
+    function getPriceEntireScion(uint256 tokenId) public view returns (uint256) {
+        return (1250000 * 10**soul.decimals()).div(getScionWeight(tokenId));
+    }
+
     function burnForSoul(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
 
-        uint256 price = (1250000 * 10**soul.decimals()).div(getScionWeight(tokenId));
+        uint256 price = getPriceEntireScion(tokenId);
 
         soul.mint(msg.sender, price);
         _burn(tokenId); // add new burn with scionsData

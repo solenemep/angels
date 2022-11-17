@@ -32,9 +32,9 @@ contract Staking is ERC721Holder, ReentrancyGuard {
 
     mapping(address => Stake) internal _stakes;
 
-    constructor(address keterAddress, address scionAddress) updateReward(address(0)) {
+    constructor(address keterAddress, address NFTAddress) updateReward(address(0)) {
         keter = IERC20(keterAddress);
-        scion = IERC721(scionAddress);
+        scion = IERC721(NFTAddress);
     }
 
     event StakeNFT(address indexed owner, uint256 id, uint256 block);

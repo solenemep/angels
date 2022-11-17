@@ -3,6 +3,7 @@
 import hre from "hardhat";
 import { ContractTransaction } from "ethers";
 import args from "./arguments";
+import { toWei } from "../test/helpers/utils";
 const verify = require("../scripts/verify");
 const wait = async (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -496,9 +497,26 @@ async function main() {
   await wait(30_000);
 
   const Archangel = await hre.ethers.getContractFactory("Archangel");
-  const archangel = await Archangel.deploy(soul.address);
+  const archangel = await Archangel.deploy(
+    soul.address,
+    "https://backend.devangelproject.com/api/archangels/metadata/"
+  );
 
   console.log("Archangel address:", archangel.address);
+
+  const Watcher = await hre.ethers.getContractFactory("Archangel");
+  const watcher = await Watcher.deploy(
+    soul.address,
+    "https://backend.devangelproject.com/api/watchers/metadata/"
+  );
+
+  console.log("Watcher address:", watcher.address);
+
+  if (hre.network.name === "mumbai") {
+    tx = await watcher.triggerBatchSale(toWei("444"));
+
+    await tx.wait();
+  }
 
   const Staking = await hre.ethers.getContractFactory("Staking");
   const staking = await Staking.deploy(keter.address, scion.address);
@@ -591,6 +609,19 @@ async function main() {
   verifyScript = verify.buildVerifyScript(
     "Archangel",
     archangel.address,
+    hre.network.name,
+    `${soul.address}`,
+    false,
+    ""
+  );
+  verify.logVerifyScript(verifyScript);
+  await verify.verifyContract(verifyScript, 2);
+
+  console.log("Archangel verified");
+
+  verifyScript = verify.buildVerifyScript(
+    "Watcher",
+    watcher.address,
     hre.network.name,
     `${soul.address}`,
     false,

@@ -348,6 +348,14 @@ describe("Scion", async () => {
 
       await expect(scion.connect(user3).burnForSoul(0)).to.be.revertedWith(reason);
     });
+    it("display correct prices", async () => {
+      const wingsWeight = Number((await scion.scionsData(0))[4].weight);
+      const priceEntire = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(0));
+      const priceWings = (priceEntire * wingsWeight) / Number(await scion.getScionWeight(0));
+
+      expect(await scion.getPriceEntireScion(0)).to.be.closeTo(priceEntire.toString(), 100000);
+      expect(await scion.getPricePerAsset(0, wingsWeight)).to.be.closeTo(priceWings.toString(), 10000);
+    });
     it("burns for soul successfully", async () => {
       const price1 = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(0));
       const tx1 = await scion.connect(user1).burnForSoul(0);
