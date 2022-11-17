@@ -24,7 +24,6 @@ contract Scion is Ownable, ERC721Enumerable {
     MintPasses public mintPasses;
     Counters.Counter private _tokenIdTracker;
 
-    uint256 public constant priceForRarityInSouls = 100e18;
     uint256 public constant BP = 10000;
     uint256 private constant MAX_WEIGHT = 2500;
 
@@ -81,7 +80,11 @@ contract Scion is Ownable, ERC721Enumerable {
         Scions _assets,
         uint256 _timestamp
     );
-    event RandomGenerated(uint256 random);
+    event ScionBurned(
+        address indexed _user,
+        uint256 indexed _tokenId,
+        uint256 _timestamp
+    );
 
     constructor(
         address _mintPasses,
@@ -204,7 +207,12 @@ contract Scion is Ownable, ERC721Enumerable {
         uint256 price = getPriceEntireScion(tokenId);
 
         soul.mint(msg.sender, price);
-        _burn(tokenId); // add new burn with scionsData
+        _burn(tokenId);
+        emit ScionBurned(
+            msg.sender,
+            tokenId,
+            block.timestamp
+        );
     }
 
     // rarity should not be less then it was before
@@ -419,7 +427,6 @@ contract Scion is Ownable, ERC721Enumerable {
             tokenId,
             _price * 10**18
         );
-        // requestRandomWords(tokenId, int256(assetId), 0, -1, 2);
     }
 
     function claimScion(uint256 mintPassId) public {
@@ -466,8 +473,6 @@ contract Scion is Ownable, ERC721Enumerable {
             assetsRegistry.getTotalWeightArray(assetsPerTypePerWeightRange), // total of weight of array
             salt
         );
-
-        emit RandomGenerated(randomNumber);
 
         uint256 previousWeightSum = 0;
         IAssetRegistry.AssetInfo memory newAsset;
