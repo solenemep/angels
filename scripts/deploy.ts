@@ -37,17 +37,17 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const RandomGenerator = await hre.ethers.getContractFactory(
-    "RandomGenerator"
-  );
-  const randomGenerator = await RandomGenerator.deploy();
-  await randomGenerator.deployed();
+  // const RandomGenerator = await hre.ethers.getContractFactory(
+  //   "RandomGenerator"
+  // );
+  // const randomGenerator = await RandomGenerator.deploy();
+  // await randomGenerator.deployed();
 
-  console.log("RandomGenerator address:", randomGenerator.address);
+  // console.log("RandomGenerator address:", randomGenerator.address);
 
   const MintPasses = await hre.ethers.getContractFactory("MintPasses", {
     libraries: {
-      RandomGenerator: randomGenerator.address,
+      RandomGenerator: "0x8682C14C778520e0c2D5c90d29467a32C0C0781e",
     },
   });
 
@@ -57,11 +57,7 @@ async function main() {
     args.MINT_PASS_BASE_TOKEN_URI,
     args.MINT_PASS_TOTAL_BIDS_LIMIT,
     args.MINT_PASS_MINIMUM_BID_AMOUNT,
-    args.MINT_PASS_AUCTION_DURATION,
-    args.SUBSCRIPTION_ID,
-    args.VRF_COORDINATOR_ADDRESS,
-    args.LINK_TOKEN_ADDRESS,
-    args.VRF_KEY_HASH
+    args.MINT_PASS_AUCTION_DURATION
   );
   await mintPasses.deployed();
   console.log("MintPasses address:", mintPasses.address);
@@ -469,7 +465,7 @@ async function main() {
 
   const Scion = await hre.ethers.getContractFactory("Scion", {
     libraries: {
-      RandomGenerator: randomGenerator.address,
+      RandomGenerator: "0x8682C14C778520e0c2D5c90d29467a32C0C0781e",
     },
   });
 
@@ -487,10 +483,6 @@ async function main() {
   );
 
   console.log("Scion address:", scion.address);
-
-  (await soul.transfer(scion.address, "1000000000000000000000000000")).wait();
-
-  await wait(30_000);
 
   (await mintPasses.setScionAddress(scion.address)).wait();
 
@@ -512,11 +504,9 @@ async function main() {
 
   console.log("Watcher address:", watcher.address);
 
-  if (hre.network.name === "mumbai") {
-    tx = await watcher.triggerBatchSale(toWei("444"));
+  tx = await watcher.triggerBatchSale(toWei("444"));
 
-    await tx.wait();
-  }
+  await tx.wait();
 
   const Staking = await hre.ethers.getContractFactory("Staking");
   const staking = await Staking.deploy(keter.address, scion.address);
@@ -545,7 +535,7 @@ async function main() {
     "MintPasses",
     mintPasses.address,
     hre.network.name,
-    `${args.MINT_PASS_NAME} ${args.MINT_PASS_SYMBOL} ${args.MINT_PASS_BASE_TOKEN_URI} ${args.MINT_PASS_TOTAL_BIDS_LIMIT} ${args.MINT_PASS_MINIMUM_BID_AMOUNT} ${args.MINT_PASS_AUCTION_DURATION} ${args.SUBSCRIPTION_ID} ${args.VRF_COORDINATOR_ADDRESS} ${args.LINK_TOKEN_ADDRESS} ${args.VRF_KEY_HASH}`,
+    `${args.MINT_PASS_NAME} ${args.MINT_PASS_SYMBOL} ${args.MINT_PASS_BASE_TOKEN_URI} ${args.MINT_PASS_TOTAL_BIDS_LIMIT} ${args.MINT_PASS_MINIMUM_BID_AMOUNT} ${args.MINT_PASS_AUCTION_DURATION}`,
     true,
     "scripts/libraries.ts"
   );
@@ -610,7 +600,7 @@ async function main() {
     "Archangel",
     archangel.address,
     hre.network.name,
-    `${soul.address}`,
+    `${soul.address} https://backend.devangelproject.com/api/archangels/metadata/`,
     false,
     ""
   );
@@ -623,7 +613,7 @@ async function main() {
     "Watcher",
     watcher.address,
     hre.network.name,
-    `${soul.address}`,
+    `${soul.address} https://backend.devangelproject.com/api/watchers/metadata/`,
     false,
     ""
   );
