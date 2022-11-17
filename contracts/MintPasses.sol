@@ -112,6 +112,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
         address indexed bidder,
         uint256 indexed passId,
         uint256 indexed bidId,
+        Class class,
         uint256 timestamp
     );
 
@@ -399,7 +400,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
 
                 uint256 tokenId = _mintMintPass(_msgSender(), class);
 
-                emit PassClaimed(_msgSender(), tokenId, bidIndex, block.timestamp);
+                emit PassClaimed(_msgSender(), tokenId, bidIndex, class, block.timestamp);
             }
         }
     }
