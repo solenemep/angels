@@ -496,7 +496,7 @@ async function main() {
 
   console.log("Archangel address:", archangel.address);
 
-  const Watcher = await hre.ethers.getContractFactory("Archangel");
+  const Watcher = await hre.ethers.getContractFactory("Watcher");
   const watcher = await Watcher.deploy(
     soul.address,
     "https://backend.devangelproject.com/api/watchers/metadata/"
