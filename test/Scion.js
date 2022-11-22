@@ -349,7 +349,8 @@ describe("Scion", async () => {
       await expect(scion.connect(user3).burnForSoul(0)).to.be.revertedWith(reason);
     });
     it("display correct prices", async () => {
-      const wingsWeight = Number((await scion.scionsData(0))[4].weight);
+      let wingsWeight = Number((await scion.scionsData(0))[4].weight);
+      wingsWeight = wingsWeight == 1000 ? 0 : wingsWeight;
       const priceEntire = (1250000 * 10 ** 18) / Number(await scion.getScionWeight(0));
       const priceWings = (priceEntire * wingsWeight) / Number(await scion.getScionWeight(0));
 

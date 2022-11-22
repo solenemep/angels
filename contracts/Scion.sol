@@ -80,11 +80,7 @@ contract Scion is Ownable, ERC721Enumerable {
         Scions _assets,
         uint256 _timestamp
     );
-    event ScionBurned(
-        address indexed _user,
-        uint256 indexed _tokenId,
-        uint256 _timestamp
-    );
+    event ScionBurned(address indexed _user, uint256 indexed _tokenId, uint256 _timestamp);
 
     constructor(
         address _mintPasses,
@@ -208,11 +204,7 @@ contract Scion is Ownable, ERC721Enumerable {
 
         soul.mint(msg.sender, price);
         _burn(tokenId);
-        emit ScionBurned(
-            msg.sender,
-            tokenId,
-            block.timestamp
-        );
+        emit ScionBurned(msg.sender, tokenId, block.timestamp);
     }
 
     // rarity should not be less then it was before
@@ -514,9 +506,16 @@ contract Scion is Ownable, ERC721Enumerable {
             scion.background.weight +
             scion.halo.weight +
             scion.head.weight +
-            scion.body.weight +
-            scion.wings.weight +
-            scion.hands.weight +
-            scion.sigil.weight;
+            scion.body.weight;
+
+        if (scion.wings.weight != 1000) {
+            totalWeight += scion.wings.weight;
+        }
+        if (scion.hands.weight != 1000) {
+            totalWeight += scion.hands.weight;
+        }
+        if (scion.sigil.weight != 1000) {
+            totalWeight += scion.sigil.weight;
+        }
     }
 }
