@@ -37,14 +37,6 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  // const RandomGenerator = await hre.ethers.getContractFactory(
-  //   "RandomGenerator"
-  // );
-  // const randomGenerator = await RandomGenerator.deploy();
-  // await randomGenerator.deployed();
-
-  // console.log("RandomGenerator address:", randomGenerator.address);
-
   const MintPasses = await hre.ethers.getContractFactory("MintPasses", {
     libraries: {
       RandomGenerator: "0x8682C14C778520e0c2D5c90d29467a32C0C0781e",
