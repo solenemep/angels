@@ -1,15 +1,16 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "./interfaces/IAssetRegistry.sol";
 
-contract AssetsRegistry is Ownable, IAssetRegistry {
+contract AssetsRegistry is OwnableUpgradeable, IAssetRegistry {
     using EnumerableSet for EnumerableSet.UintSet;
 
-    uint256 private _latestAssetId = 1;
+    uint256 private _latestAssetId;
 
     // asset related
     mapping(uint256 => mapping(uint256 => AssetInfo)) public assetInfos; // asset type -> asset index -> asset info
@@ -19,7 +20,10 @@ contract AssetsRegistry is Ownable, IAssetRegistry {
     // asset type -> set of weights
     mapping(uint256 => uint256[]) public assetsUniqueWeights;
 
-    constructor() {}
+    function __AssetRegistry_init() external initializer {
+        __Ownable_init();
+        _latestAssetId = 1;
+    }
 
     function setAssets(
         uint256 _assetId,

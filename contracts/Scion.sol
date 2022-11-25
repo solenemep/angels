@@ -1,36 +1,38 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
+import "./Registry.sol";
+
 import "./MintPasses.sol";
-import "./Soul.sol";
+import "./tokens/Soul.sol";
+import "./tokens/Keter.sol";
 
 import "./libraries/RandomGenerator.sol";
 import "./interfaces/IAssetRegistry.sol";
 
-contract Scion is Ownable, ERC721Enumerable {
+contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradeable {
     using Counters for Counters.Counter;
-    using Strings for uint256;
-    using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    IAssetRegistry public assetsRegistry;
+    Registry public registry;
+    Soul public soul;
+    Keter public keter;
     MintPasses public mintPasses;
+    IAssetRegistry public assetsRegistry;
+
     Counters.Counter private _tokenIdTracker;
 
     uint256 public constant BP = 10000;
     uint256 private constant MAX_WEIGHT = 2500;
 
     string private _baseTokenURI;
-
-    Soul public soul;
-    IERC20 public keter;
 
     struct Scions {
         // Mandatory
@@ -82,25 +84,30 @@ contract Scion is Ownable, ERC721Enumerable {
     );
     event ScionBurned(address indexed _user, uint256 indexed _tokenId, uint256 _timestamp);
 
-    constructor(
-        address _mintPasses,
-        address _soul,
-        address _keter,
-        address _assetsRegistry,
-        string memory name,
-        string memory symbol,
+    function __Scion_init(
+        string memory _name,
+        string memory _symbol,
         string memory baseTokenURI,
         uint256 _downgrade,
         uint256 _sameWeight,
-        uint256 _rarityPlus
-    ) ERC721(name, symbol) {
-        mintPasses = MintPasses(_mintPasses);
-        assetsRegistry = IAssetRegistry(_assetsRegistry);
-        soul = Soul(_soul);
-        keter = IERC20(_keter);
-        _baseTokenURI = baseTokenURI;
+        uint256 _rarityPlus,
+        address registryAddress
+    ) external initializer {
+        registry = Registry(registryAddress);
 
+        _baseTokenURI = baseTokenURI;
         _rerollChances = RerollChances(_downgrade, _sameWeight, _rarityPlus);
+
+        __Ownable_init();
+        __ReentrancyGuard_init();
+        __ERC721_init(_name, _symbol);
+    }
+
+    function setDependencies() external onlyOwner {
+        assetsRegistry = IAssetRegistry(registry.getContract("ASSETS"));
+        keter = Keter(registry.getContract("KETER"));
+        soul = Soul(registry.getContract("SOUL"));
+        mintPasses = MintPasses(registry.getContract("MINTPASS"));
     }
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {
@@ -197,14 +204,14 @@ contract Scion is Ownable, ERC721Enumerable {
         return (1250000 * 10**soul.decimals()).div(getScionWeight(tokenId));
     }
 
-    function burnForSoul(uint256 tokenId) external {
-        require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
+    function burnForSoul(uint256 tokenId) external nonReentrant {
+        require(ownerOf(tokenId) == _msgSender(), "Scion: invalid owner");
 
         uint256 price = getPriceEntireScion(tokenId);
 
-        soul.mint(msg.sender, price);
+        soul.mint(_msgSender(), price);
         _burn(tokenId);
-        emit ScionBurned(msg.sender, tokenId, block.timestamp);
+        emit ScionBurned(_msgSender(), tokenId, block.timestamp);
     }
 
     // rarity should not be less then it was before
@@ -402,17 +409,17 @@ contract Scion is Ownable, ERC721Enumerable {
                 scionsData[_tokenId],
                 _price,
                 block.timestamp,
-                msg.sender
+                _msgSender()
             );
         }
     }
 
     function rerollAsset(uint256 tokenId, uint256 assetId) public {
-        require(ownerOf(tokenId) == msg.sender, "Scion: invalid owner");
+        require(ownerOf(tokenId) == _msgSender(), "Scion: invalid owner");
         require(assetId <= 6);
         uint256 _price = rerollPrice(tokenId, assetId);
 
-        keter.safeTransferFrom(msg.sender, address(this), _price * 10**18);
+        keter.transferFrom(_msgSender(), address(this), _price * 10**18);
         rerollCalculate(
             RandomGenerator.random(_msgSender(), BP, 0),
             assetId,
@@ -421,8 +428,8 @@ contract Scion is Ownable, ERC721Enumerable {
         );
     }
 
-    function claimScion(uint256 mintPassId) public {
-        require(mintPasses.ownerOf(mintPassId) == msg.sender, "Scion: invalid owner");
+    function claimScion(uint256 mintPassId) public nonReentrant {
+        require(mintPasses.ownerOf(mintPassId) == _msgSender(), "Scion: invalid owner");
 
         // Burning minting pass
         mintPasses.burn(mintPassId);
@@ -430,12 +437,12 @@ contract Scion is Ownable, ERC721Enumerable {
         uint256 newTokenId = _tokenIdTracker.current();
 
         assignAssets(newTokenId, mintPassId);
-        _safeMint(msg.sender, newTokenId);
+        _safeMint(_msgSender(), newTokenId);
 
         _tokenIdTracker.increment();
 
         emit ScionClaimed(
-            msg.sender,
+            _msgSender(),
             newTokenId,
             mintPassId,
             scionsData[newTokenId],

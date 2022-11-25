@@ -1,10 +1,15 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.10;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "./Creature.sol";
 
-contract Archangel is Creature {
-    constructor(address _soul, string memory _uriBase)
-        Creature("Archangel", "ARCH", _soul, _uriBase)
-    {}
+contract Archangel is Initializable, Creature {
+    function __Archangel_init(string memory _uriBase, address registryAddress)
+        external
+        initializer
+    {
+        __Creature_init("Archangel", "ARCH", _uriBase, registryAddress);
+    }
 }

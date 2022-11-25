@@ -33,7 +33,6 @@ describe("AssetsRegistry", async () => {
     });
     it("set assets halo", async () => {
       // set in init.js
-
       expect((await assetsRegistry.assetInfos(1, 7)).assetIndex).to.equal(7);
       expect((await assetsRegistry.assetInfos(1, 26)).assetIndex).to.equal(26);
     });
@@ -41,25 +40,24 @@ describe("AssetsRegistry", async () => {
   describe("unique weights", async () => {
     it("uniqueWeightsForType", async () => {
       // set in init.js
-      // console.log(await assetsRegistry.uniqueWeightsForType(0));
-      // console.log(await assetsRegistry.uniqueWeightsForType(4));
+      expect((await assetsRegistry.uniqueWeightsForType(0))[0]).to.equal(1000);
+      expect((await assetsRegistry.uniqueWeightsForType(4))[1]).to.equal(10);
     });
   });
   describe("getters", async () => {
     it("getAssetInfo", async () => {
-      // console.log(await assetsRegistry.getAssetInfo(0, 1));
+      expect((await assetsRegistry.getAssetInfo(0, 1))[0]).to.equal("BGND001");
     });
     it("getAssetsPerType", async () => {
-      // console.log(await assetsRegistry.getAssetsPerType(0));
+      expect((await assetsRegistry.getAssetsPerType(0))[0][0]).to.equal("BGND001");
     });
     it("getAssetsPerTypePerWeight", async () => {
-      // console.log(await assetsRegistry.getAssetsPerTypePerWeight(0, 250));
-      // console.log(await assetsRegistry.getAssetsPerTypePerWeight(0, 9));
+      expect((await assetsRegistry.getAssetsPerTypePerWeight(0, 250))[0][0]).to.equal("BGND002");
+      expect((await assetsRegistry.getAssetsPerTypePerWeight(0, 250))[0][1]).to.equal(250);
     });
     it("getAssetsPerTypePerWeightRange", async () => {
-      // console.log(await assetsRegistry.getAssetsPerTypePerWeightRange(0, 100, 1000));
-      // console.log(await assetsRegistry.getAssetsPerTypePerWeightRange(0, 251, 1000));
-      // console.log(await assetsRegistry.getAssetsPerTypePerWeightRange(3, 0, 800));
+      expect((await assetsRegistry.getAssetsPerTypePerWeightRange(0, 100, 1000))[0][0]).to.equal("BGND001");
+      expect((await assetsRegistry.getAssetsPerTypePerWeightRange(3, 0, 800))[0][1]).to.equal(250);
     });
   });
   describe.skip("get fees", async () => {

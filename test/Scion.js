@@ -124,7 +124,7 @@ describe("Scion", async () => {
 
   describe("claimScion", async () => {
     it("reverts if inexistant mintPass", async () => {
-      const reason = "ERC721: owner query for nonexistent token";
+      const reason = "ERC721: invalid token ID";
 
       await expect(scion.connect(user1).claimScion(6)).to.be.revertedWith(reason);
     });
@@ -249,17 +249,10 @@ describe("Scion", async () => {
       await scion.connect(user4).claimScion(3);
       await scion.connect(user5).claimScion(4);
       await scion.connect(user6).claimScion(5);
-
-      await keter.transfer(user1.address, toWei("100000"));
-      await keter.transfer(user2.address, toWei("100000"));
-      await keter.transfer(user3.address, toWei("100000"));
-      await keter.transfer(user4.address, toWei("100000"));
-      await keter.transfer(user5.address, toWei("100000"));
-      await keter.transfer(user6.address, toWei("100000"));
     });
 
     it("reverts if inexistant scion", async () => {
-      const reason = "ERC721: owner query for nonexistent token";
+      const reason = "ERC721: invalid token ID";
 
       await expect(scion.connect(user1).rerollAsset(6, 2)).to.be.revertedWith(reason);
     });
@@ -340,8 +333,6 @@ describe("Scion", async () => {
       await scion.connect(user4).claimScion(3);
       await scion.connect(user5).claimScion(4);
       await scion.connect(user6).claimScion(5);
-
-      await soul.setScionAddress(scion.address);
     });
     it("reverts if not owner of token", async () => {
       const reason = "Scion: invalid owner";

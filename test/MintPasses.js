@@ -8,6 +8,7 @@ const { toBN, toWei, snapshot, restore, increaseTime, increaseTimeTo, getTime, g
 describe("MintPasses", async () => {
   let mintPasses;
   let mintPassesHolder;
+  let treasury;
   let owner;
   let user1, user2, user3, user4, user5, user6;
 
@@ -28,6 +29,7 @@ describe("MintPasses", async () => {
     user5 = setups.users[5];
     user6 = setups.users[6];
 
+    treasury = setups.treasury;
     mintPasses = setups.mintPasses;
     mintPassesHolder = setups.mintPassesHolder;
 
@@ -837,7 +839,7 @@ describe("MintPasses", async () => {
       const tx = await mintPasses.connect(user1).claimPass([1]);
 
       expect(tx).to.changeEtherBalance(mintPasses, -value);
-      expect(tx).to.changeEtherBalance(await mintPasses.treasury(), value);
+      expect(tx).to.changeEtherBalance(treasury, value);
 
       expect(tx).to.changeTokenBalance(mintPasses, user1, 1);
 
@@ -896,7 +898,7 @@ describe("MintPasses", async () => {
       const tx = await mintPasses.connect(user1).claimPass([0, 2]);
 
       expect(tx).to.changeEtherBalance(mintPasses, 0);
-      expect(tx).to.changeEtherBalance(await mintPasses.treasury(), 0);
+      expect(tx).to.changeEtherBalance(treasury, 0);
 
       expect(tx).to.changeTokenBalance(mintPasses, user1, 0);
       expect(tx).to.changeTokenBalance(mintPasses, user2, 0);
@@ -956,7 +958,7 @@ describe("MintPasses", async () => {
       const tx = await mintPasses.connect(user2).claimPass([1]);
 
       expect(tx).to.changeEtherBalance(mintPasses, 0);
-      expect(tx).to.changeEtherBalance(await mintPasses.treasury(), 0);
+      expect(tx).to.changeEtherBalance(treasury, 0);
 
       expect(tx).to.changeTokenBalance(mintPasses, user1, 0);
       expect(tx).to.changeTokenBalance(mintPasses, user2, 0);
@@ -1018,7 +1020,7 @@ describe("MintPasses", async () => {
       const tx = await mintPasses.connect(user1).claimPass([1]);
 
       expect(tx).to.changeEtherBalance(mintPasses, 0);
-      expect(tx).to.changeEtherBalance(await mintPasses.treasury(), 0);
+      expect(tx).to.changeEtherBalance(treasury, 0);
 
       expect(tx).to.changeTokenBalance(mintPasses, user1, 0);
       expect(tx).to.changeTokenBalance(mintPasses, user2, 0);
@@ -1078,7 +1080,7 @@ describe("MintPasses", async () => {
       const tx = await mintPasses.connect(user1).claimPass([1]);
 
       expect(tx).to.changeEtherBalance(mintPasses, 0);
-      expect(tx).to.changeEtherBalance(await mintPasses.treasury(), 0);
+      expect(tx).to.changeEtherBalance(treasury, 0);
 
       expect(tx).to.changeTokenBalance(mintPasses, user1, 0);
       expect(tx).to.changeTokenBalance(mintPasses, user2, 0);
@@ -1136,7 +1138,7 @@ describe("MintPasses", async () => {
 
       await expect(mintPasses.connect(user1).claimPass([1]))
         .to.emit(mintPasses, "PassClaimed")
-        .withArgs(user1.address, 0, 1, (await getTime()).toString());
+        .withArgs(user1.address, 0, 1, Class.BRONZE, (await getTime()).toString());
     });
   });
 

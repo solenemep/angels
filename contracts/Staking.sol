@@ -1,25 +1,30 @@
+//SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
+import "./Registry.sol";
+import "./Scion.sol";
+import "./tokens/Keter.sol";
 
 /// @title NFT Staking
 /// @dev written with the help of https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
 
-contract Staking is ERC721Holder, ReentrancyGuard {
+contract Staking is OwnableUpgradeable, ERC721Holder, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.UintSet;
     using SafeMath for uint256;
-    using SafeERC20 for IERC20;
 
-    IERC20 public keter;
-    IERC721 public scion;
+    Registry public registry;
+    Keter public keter;
+    Scion public scion;
 
-    uint256 public rewardPerBlock = 3;
+    uint256 public rewardPerBlock;
     uint256 public totalNFTStaked;
     uint256 public lastBlockUpdate;
     uint256 public rewardPerTokenStored;
@@ -32,13 +37,25 @@ contract Staking is ERC721Holder, ReentrancyGuard {
 
     mapping(address => Stake) internal _stakes;
 
-    constructor(address keterAddress, address NFTAddress) updateReward(address(0)) {
-        keter = IERC20(keterAddress);
-        scion = IERC721(NFTAddress);
-    }
-
     event StakeNFT(address indexed owner, uint256 id, uint256 block);
     event UnStakeNFT(address indexed owner, uint256 id, uint256 block);
+
+    function __Staking_init(address registryAddress)
+        external
+        initializer
+        updateReward(address(0))
+    {
+        registry = Registry(registryAddress);
+        rewardPerBlock = 3;
+
+        __Ownable_init();
+        __ReentrancyGuard_init();
+    }
+
+    function setDependencies() external onlyOwner {
+        keter = Keter(registry.getContract("KETER"));
+        scion = Scion(registry.getContract("SCION"));
+    }
 
     modifier updateReward(address _account) {
         rewardPerTokenStored = rewardPerToken();
@@ -84,15 +101,15 @@ contract Staking is ERC721Holder, ReentrancyGuard {
         _stakeNFT(_tokenId);
     }
 
-    function _stakeNFT(uint256 _tokenId) internal nonReentrant updateReward(msg.sender) {
-        require(scion.ownerOf(_tokenId) == msg.sender, "you dont own this token");
+    function _stakeNFT(uint256 _tokenId) internal nonReentrant updateReward(_msgSender()) {
+        require(scion.ownerOf(_tokenId) == _msgSender(), "you dont own this token");
 
-        _stakes[msg.sender].stakedTokenIds.add(_tokenId);
-        scion.safeTransferFrom(msg.sender, address(this), _tokenId, "0x00");
+        _stakes[_msgSender()].stakedTokenIds.add(_tokenId);
+        scion.safeTransferFrom(_msgSender(), address(this), _tokenId, "0x00");
 
         totalNFTStaked++;
 
-        emit StakeNFT(msg.sender, _tokenId, block.number);
+        emit StakeNFT(_msgSender(), _tokenId, block.number);
     }
 
     function unStakeNFTs(uint256[] memory _tokenIds) external {
@@ -107,25 +124,25 @@ contract Staking is ERC721Holder, ReentrancyGuard {
         _unStakeNFT(_tokenId);
     }
 
-    function _unStakeNFT(uint256 _tokenId) internal nonReentrant updateReward(msg.sender) {
+    function _unStakeNFT(uint256 _tokenId) internal nonReentrant updateReward(_msgSender()) {
         require(
-            _stakes[msg.sender].stakedTokenIds.contains(_tokenId),
+            _stakes[_msgSender()].stakedTokenIds.contains(_tokenId),
             "Staking: No stake with this token id"
         );
 
-        _stakes[msg.sender].stakedTokenIds.remove(_tokenId);
-        scion.safeTransferFrom(address(this), msg.sender, _tokenId, "0x00");
+        _stakes[_msgSender()].stakedTokenIds.remove(_tokenId);
+        scion.safeTransferFrom(address(this), _msgSender(), _tokenId, "0x00");
 
         totalNFTStaked--;
 
-        emit UnStakeNFT(msg.sender, _tokenId, block.number);
+        emit UnStakeNFT(_msgSender(), _tokenId, block.number);
     }
 
-    function getReward() external nonReentrant updateReward(msg.sender) {
-        uint256 reward = _stakes[msg.sender].rewards;
+    function getReward() external nonReentrant updateReward(_msgSender()) {
+        uint256 reward = _stakes[_msgSender()].rewards;
         if (reward > 0) {
-            _stakes[msg.sender].rewards = 0;
-            keter.safeTransfer(msg.sender, reward);
+            _stakes[_msgSender()].rewards = 0;
+            keter.transfer(_msgSender(), reward);
         }
     }
 

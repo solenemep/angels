@@ -1,42 +1,48 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "./Soul.sol";
+import "./Registry.sol";
+import "./tokens/Soul.sol";
 
-contract Creature is Ownable, ReentrancyGuard, ERC721 {
+contract Creature is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradeable {
     // Mint, receives the minting pass NFT, burns it to create a Scion
     using Counters for Counters.Counter;
-    using Strings for uint256;
-    using SafeERC20 for Soul;
+
+    Registry public registry;
+    Soul public soul;
 
     uint256 public constant BATCH = 7;
 
+    uint256 public currentBacthIndex;
     Counters.Counter private _tokenIdTracker;
 
     uint256 public priceInSouls;
-    Soul public soul;
     string private _uri;
-
-    uint256 public currentBacthIndex;
 
     event CreatureMinted(address indexed user, uint256 indexed tokenId, uint256 timestamp);
 
-    constructor(
+    function __Creature_init(
         string memory _name,
         string memory _symbol,
-        address _soul,
-        string memory _uriBase
-    ) ERC721(_name, _symbol) {
-        soul = Soul(_soul);
+        string memory _uriBase,
+        address registryAddress
+    ) internal onlyInitializing {
+        registry = Registry(registryAddress);
         _uri = _uriBase;
+
+        __Ownable_init();
+        __ReentrancyGuard_init();
+        __ERC721_init(_name, _symbol);
+    }
+
+    function setDependencies() external onlyOwner {
+        soul = Soul(registry.getContract("SOUL"));
     }
 
     function isOnSale(uint256 _tokenId) public view returns (bool) {
@@ -84,12 +90,12 @@ contract Creature is Ownable, ReentrancyGuard, ERC721 {
 
         _tokenIdTracker.increment();
 
-        soul.safeTransferFrom(msg.sender, address(this), priceInSouls);
+        soul.transferFrom(_msgSender(), address(this), priceInSouls);
         soul.burn(priceInSouls);
 
-        _mint(msg.sender, newTokenId);
+        _mint(_msgSender(), newTokenId);
 
-        emit CreatureMinted(msg.sender, newTokenId, block.timestamp);
+        emit CreatureMinted(_msgSender(), newTokenId, block.timestamp);
     }
 
     function _baseURI() internal view virtual override returns (string memory) {

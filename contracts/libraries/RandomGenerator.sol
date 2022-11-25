@@ -12,7 +12,7 @@ library RandomGenerator {
         address _user,
         uint256 _limit,
         uint256 _salt
-    ) external view returns (uint256) {
+    ) internal view returns (uint256) {
         return
             uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, _user, _salt))) %
             _limit;

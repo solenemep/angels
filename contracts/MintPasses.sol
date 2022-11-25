@@ -4,42 +4,33 @@
 // It will be used by the Solidity compiler to validate its version.
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+import "./Registry.sol";
 import "./libraries/RandomGenerator.sol";
 
-// We import this library to be able to use console.log
-import "hardhat/console.sol";
-
-// This is the main building block for smart contracts.
-contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
-    using SafeERC20 for IERC20;
+contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradeable {
     using Counters for Counters.Counter;
     using EnumerableSet for EnumerableSet.UintSet;
     using Math for uint256;
     using SafeMath for uint256;
 
+    Registry public registry;
+
     Counters.Counter private _tokenIdTracker;
 
     string private _baseTokenURI;
-    uint256 public totalBidsLimit;
-    uint256 private _latestBidId = 1;
+    uint256 private _latestBidId;
     uint256 public start;
     uint256 public minimumBidAmount;
     uint256 public auctionDuration;
-    address public scionContract;
-    address public mintPassHolderContract;
-    address public treasury;
 
     enum Class {
         NONE,
@@ -134,27 +125,24 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
         _;
     }
 
-    /**
-     * See {ERC721-tokenURI}.
-     */
-    constructor(
-        string memory name,
-        string memory symbol,
+    function __MintPasses_init(
+        string memory _name,
+        string memory _symbol,
         string memory baseTokenURI,
-        uint256 _totalBidsLimit,
         uint256 _minimumBidAmount,
-        uint256 _auctionDuration
-    )
-        // TODO assert non empty treasury
-        // TODO assert non empty scionContract
-        ERC721(name, symbol)
-    {
-        // uint64 subscriptionId, address vrfCoordinator, address link, bytes32 _keyHash
+        uint256 _auctionDuration,
+        address registryAddress
+    ) external initializer {
+        registry = Registry(registryAddress);
+
+        _latestBidId = 1;
         _baseTokenURI = baseTokenURI;
-        totalBidsLimit = _totalBidsLimit;
-        //start = block.timestamp;
         auctionDuration = _auctionDuration;
         minimumBidAmount = _minimumBidAmount;
+
+        __Ownable_init();
+        __ReentrancyGuard_init();
+        __ERC721_init(_name, _symbol);
     }
 
     function isAuctionFinished() public view returns (bool) {
@@ -289,22 +277,6 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
         classLimits[_class].topAssetWeight = _topAssetWeight;
     }
 
-    function setTreasury(address _treasury) public onlyOwner {
-        treasury = _treasury;
-    }
-
-    function setTotalLimit(uint256 _totalBidsLimit) external onlyOwner {
-        totalBidsLimit = _totalBidsLimit;
-    }
-
-    function setScionAddress(address _scionContract) external onlyOwner {
-        scionContract = _scionContract;
-    }
-
-    function setMintPassesHolderAddress(address _mintPassesHolderContract) external onlyOwner {
-        mintPassHolderContract = _mintPassesHolderContract;
-    }
-
     function startAuction(uint256 _auctionDuration, uint256 _auctionStart) external onlyOwner {
         start = _auctionStart;
         auctionDuration = _auctionDuration * 1 minutes;
@@ -385,7 +357,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
         public
         view
         virtual
-        override(ERC721Enumerable)
+        override(ERC721Upgradeable)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
@@ -409,7 +381,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
                 !bidInfos[bidIndex].claimed &&
                 class != Class.NONE
             ) {
-                payable(treasury).transfer(bidInfos[bidIndex].bidValue);
+                payable(registry.getContract("TREASURY")).transfer(bidInfos[bidIndex].bidValue);
                 bidInfos[bidIndex].claimed = true;
 
                 uint256 tokenId = _mintMintPass(_msgSender(), class);
@@ -422,7 +394,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
     function mintPromotionPassBatch(Class[] memory classes) public onlyOwner {
         require(classes.length < 30, "Too many mintPass to mint");
         for (uint256 i = 0; i < classes.length; i++) {
-            _mintMintPass(mintPassHolderContract, classes[i]);
+            _mintMintPass(registry.getContract("MINTPASS_HOLDER"), classes[i]);
         }
     }
 
@@ -437,7 +409,7 @@ contract MintPasses is Context, ERC721Enumerable, Ownable, ReentrancyGuard {
     }
 
     function burn(uint256 tokenId) external {
-        require(scionContract == _msgSender(), "Only scion contract can burn");
+        require(registry.getContract("SCION") == _msgSender(), "Only scion contract can burn");
         _burn(tokenId);
     }
 }
