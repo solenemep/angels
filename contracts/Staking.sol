@@ -20,7 +20,6 @@ contract Staking is OwnableUpgradeable, ERC721Holder, ReentrancyGuardUpgradeable
     using EnumerableSet for EnumerableSet.UintSet;
     using SafeMath for uint256;
 
-    Registry public registry;
     Keter public keter;
     Scion public scion;
 
@@ -40,21 +39,16 @@ contract Staking is OwnableUpgradeable, ERC721Holder, ReentrancyGuardUpgradeable
     event StakeNFT(address indexed owner, uint256 id, uint256 block);
     event UnStakeNFT(address indexed owner, uint256 id, uint256 block);
 
-    function __Staking_init(address registryAddress)
-        external
-        initializer
-        updateReward(address(0))
-    {
-        registry = Registry(registryAddress);
+    function __Staking_init() external initializer updateReward(address(0)) {
         rewardPerBlock = 3;
 
         __Ownable_init();
         __ReentrancyGuard_init();
     }
 
-    function setDependencies() external onlyOwner {
-        keter = Keter(registry.getContract("KETER"));
-        scion = Scion(registry.getContract("SCION"));
+    function setDependencies(address registryAddress) external onlyOwner {
+        keter = Keter(Registry(registryAddress).getContract("KETER"));
+        scion = Scion(Registry(registryAddress).getContract("SCION"));
     }
 
     modifier updateReward(address _account) {

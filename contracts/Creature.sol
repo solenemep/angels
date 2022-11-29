@@ -14,7 +14,6 @@ contract Creature is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgra
     // Mint, receives the minting pass NFT, burns it to create a Scion
     using Counters for Counters.Counter;
 
-    Registry public registry;
     Soul public soul;
 
     uint256 public constant BATCH = 7;
@@ -30,10 +29,8 @@ contract Creature is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgra
     function __Creature_init(
         string memory _name,
         string memory _symbol,
-        string memory _uriBase,
-        address registryAddress
+        string memory _uriBase
     ) internal onlyInitializing {
-        registry = Registry(registryAddress);
         _uri = _uriBase;
 
         __Ownable_init();
@@ -41,8 +38,8 @@ contract Creature is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgra
         __ERC721_init(_name, _symbol);
     }
 
-    function setDependencies() external onlyOwner {
-        soul = Soul(registry.getContract("SOUL"));
+    function setDependencies(address registryAddress) external onlyOwner {
+        soul = Soul(Registry(registryAddress).getContract("SOUL"));
     }
 
     function isOnSale(uint256 _tokenId) public view returns (bool) {

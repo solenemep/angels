@@ -1,10 +1,7 @@
-const { ZERO_ADDRESS } = require("@openzeppelin/test-helpers/src/constants");
 const { expect } = require("chai");
-const { args } = require("./helpers/arguments");
-const { assets } = require("./helpers/assets");
-const { Class, classLimits } = require("./helpers/classLimits");
-const { init } = require("./helpers/init");
-const { toBN, toWei, snapshot, restore, increaseTime, increaseTimeTo, getTime, getCosts } = require("./helpers/utils");
+const { assets } = require("../helpers/assets");
+const { init } = require("../helpers/initTest");
+const { snapshot, restore, getCosts } = require("../helpers/utils");
 
 describe("AssetsRegistry", async () => {
   let assetsRegistry;

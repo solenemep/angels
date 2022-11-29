@@ -1,6 +1,6 @@
 const { expect } = require("chai");
-const { increaseTime } = require("./helpers/utils");
-const { init } = require("./helpers/init");
+const { increaseTime } = require("../helpers/utils");
+const { init } = require("../helpers/initTest");
 
 const getMedian = (arr) => {
   const mid = Math.floor(arr.length / 2),

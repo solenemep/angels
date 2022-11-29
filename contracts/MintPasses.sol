@@ -14,6 +14,10 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./Registry.sol";
+
+import "./MintPassesHolder.sol";
+import "./Scion.sol";
+
 import "./libraries/RandomGenerator.sol";
 
 contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradeable {
@@ -22,9 +26,11 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
     using Math for uint256;
     using SafeMath for uint256;
 
-    Registry public registry;
-
     Counters.Counter private _tokenIdTracker;
+
+    address public treasury;
+    MintPassesHolder public mintPassesHolder;
+    Scion public scion;
 
     string private _baseTokenURI;
     uint256 private _latestBidId;
@@ -130,11 +136,8 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
         string memory _symbol,
         string memory baseTokenURI,
         uint256 _minimumBidAmount,
-        uint256 _auctionDuration,
-        address registryAddress
+        uint256 _auctionDuration
     ) external initializer {
-        registry = Registry(registryAddress);
-
         _latestBidId = 1;
         _baseTokenURI = baseTokenURI;
         auctionDuration = _auctionDuration;
@@ -143,6 +146,14 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
         __Ownable_init();
         __ReentrancyGuard_init();
         __ERC721_init(_name, _symbol);
+    }
+
+    function setDependencies(address registryAddress) external onlyOwner {
+        treasury = Registry(registryAddress).getContract("TREASURY");
+        mintPassesHolder = MintPassesHolder(
+            Registry(registryAddress).getContract("MINTPASS_HOLDER")
+        );
+        scion = Scion(Registry(registryAddress).getContract("SCION"));
     }
 
     function isAuctionFinished() public view returns (bool) {
@@ -381,7 +392,7 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
                 !bidInfos[bidIndex].claimed &&
                 class != Class.NONE
             ) {
-                payable(registry.getContract("TREASURY")).transfer(bidInfos[bidIndex].bidValue);
+                payable(treasury).transfer(bidInfos[bidIndex].bidValue);
                 bidInfos[bidIndex].claimed = true;
 
                 uint256 tokenId = _mintMintPass(_msgSender(), class);
@@ -394,7 +405,7 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
     function mintPromotionPassBatch(Class[] memory classes) public onlyOwner {
         require(classes.length < 30, "Too many mintPass to mint");
         for (uint256 i = 0; i < classes.length; i++) {
-            _mintMintPass(registry.getContract("MINTPASS_HOLDER"), classes[i]);
+            _mintMintPass(address(mintPassesHolder), classes[i]);
         }
     }
 
@@ -409,7 +420,7 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
     }
 
     function burn(uint256 tokenId) external {
-        require(registry.getContract("SCION") == _msgSender(), "Only scion contract can burn");
+        require(address(scion) == _msgSender(), "Only scion contract can burn");
         _burn(tokenId);
     }
 }

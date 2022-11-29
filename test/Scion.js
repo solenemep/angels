@@ -1,8 +1,8 @@
 const { expect } = require("chai");
-const { args } = require("./helpers/arguments");
-const { Class, classLimits } = require("./helpers/classLimits");
-const { init } = require("./helpers/init");
-const { toBN, toWei, snapshot, restore, getTime, getCosts } = require("./helpers/utils");
+const { args } = require("../helpers/arguments");
+const { Class, classLimits } = require("../helpers/classLimits");
+const { init } = require("../helpers/initTest");
+const { toBN, toWei, snapshot, restore, getTime, getCosts } = require("../helpers/utils");
 
 describe("Scion", async () => {
   let keter;
@@ -214,13 +214,13 @@ describe("Scion", async () => {
     it("emits ScionClaimed", async () => {
       await expect(scion.connect(user1).claimScion(0))
         .to.emit(scion, "ScionClaimed")
-        .withArgs(user1.address, 0, 0, [], (await getTime()).toString());
+        .withArgs(user1.address, 0, 0, [], Number(await getTime()).toString());
       await expect(scion.connect(user4).claimScion(3))
         .to.emit(scion, "ScionClaimed")
-        .withArgs(user4.address, 1, 3, [], (await getTime()).toString());
+        .withArgs(user4.address, 1, 3, [], Number(await getTime()).toString());
       await expect(scion.connect(user6).claimScion(5))
         .to.emit(scion, "ScionClaimed")
-        .withArgs(user6.address, 2, 5, [], (await getTime()).toString());
+        .withArgs(user6.address, 2, 5, [], Number(await getTime()).toString());
     });
   });
 

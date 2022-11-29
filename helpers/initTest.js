@@ -4,47 +4,39 @@ const { assets } = require("./assets");
 const { weightLimits, Class } = require("./classLimits");
 const { toWei } = require("./utils");
 
-const addresses = {
-  goerli: {
-    // --network goerli
-    registryAddress: "",
-    randomGeneratorAddress: "",
-    keterAddress: "0xB561F45E4A3B146c8797ee5B59B097E0AC58f72e",
-    soulAddress: "0xcd7490578d7c3b667864AE07A28598cABe141FDF",
-    assetsRegistryAddress: "0xdff85d705D995E52f38a277E71141063c7d6B854",
-    archangelAddress: "0x23bca218328A073c96b70987Edbe55294eF62A8a",
-    watcherAddress: "0x49fFF65f187337404560Ad2AA54A99FccaC88601",
-    mintPassesAddress: "0x562dA393D8C7615dde0C415417c86E0Fbe117f24",
-    mintPassesHolderAddress: "0x562dA393D8C7615dde0C415417c86E0Fbe117f24",
-    scionAddress: "0x23bca218328A073c96b70987Edbe55294eF62A8a",
-    stakingAddress: "0x49fFF65f187337404560Ad2AA54A99FccaC88601",
-  },
-};
-
-let network = "goerli";
-
-let registry;
-let randomGenerator;
-let assetsRegistry;
-let keter;
-let soul;
-let archangel;
-let watcher;
-let mintPassesHolder;
-let mintPasses;
-let scion;
-let staking;
-
-const treasury = "0x49fFF65f187337404560Ad2AA54A99FccaC88601";
+let RandomGenerator,
+  Registry,
+  Keter,
+  Soul,
+  AssetsRegistry,
+  Archangel,
+  Watcher,
+  MintPasses,
+  MintPassesHolder,
+  Scion,
+  Staking;
+let randomGenerator,
+  registry,
+  keter,
+  soul,
+  assetsRegistry,
+  archangel,
+  watcher,
+  mintPasses,
+  mintPassesHolder,
+  scion,
+  staking,
+  treasury;
 
 const init = async () => {
   const users = await ethers.getSigners();
 
-  await deployLibrary();
+  await getContractFactory();
+  await deployLibraries();
   await deployContracts();
   await deployImplementations();
   await addContracts();
-  await addProxyContracts();
+  await addProxies();
   await deployProxies();
   await initContracts();
   await setDependencies();
@@ -103,147 +95,135 @@ const init = async () => {
   };
 };
 
-const deployLibrary = async () => {
+const getContractFactory = async () => {
+  RandomGenerator = await ethers.getContractFactory("RandomGenerator");
+  Registry = await ethers.getContractFactory("Registry");
+  Keter = await ethers.getContractFactory("Keter");
+  Soul = await ethers.getContractFactory("Soul");
+  AssetsRegistry = await ethers.getContractFactory("AssetsRegistry");
+  Archangel = await ethers.getContractFactory("Archangel");
+  Watcher = await ethers.getContractFactory("Watcher");
+  MintPasses = await ethers.getContractFactory("MintPasses", {
+    // libraries: {
+    //   RandomGenerator: randomGenerator.address,
+    // },
+  });
+  MintPassesHolder = await ethers.getContractFactory("MintPassesHolder");
+  Scion = await ethers.getContractFactory("Scion", {
+    // libraries: {
+    //   RandomGenerator: randomGenerator.address,
+    // },
+  });
+  Staking = await ethers.getContractFactory("Staking");
+};
+
+const deployLibraries = async () => {
   // Library
-  const RandomGenerator = await ethers.getContractFactory("RandomGenerator");
   randomGenerator = await RandomGenerator.deploy();
   await randomGenerator.deployed();
 };
 
 const deployContracts = async () => {
   // Registry
-  const Registry = await ethers.getContractFactory("Registry");
   registry = await Registry.deploy();
   await registry.deployed();
 
   // ERC20
-  const Keter = await ethers.getContractFactory("Keter");
   keter = await Keter.deploy();
   await keter.deployed();
 
-  const Soul = await ethers.getContractFactory("Soul");
-  soul = await Soul.deploy(args.SOUL_NAME, args.SOUL_SYMBOL, registry.address);
+  soul = await Soul.deploy(args.SOUL_NAME, args.SOUL_SYMBOL);
   await soul.deployed();
 };
 
 const deployImplementations = async () => {
   // Assets
-  const AssetsRegistry = await ethers.getContractFactory("AssetsRegistry");
   assetsRegistry = await upgrades.deployImplementation(AssetsRegistry);
 
   // ERC721
-  const Archangel = await ethers.getContractFactory("Archangel");
   archangel = await upgrades.deployImplementation(Archangel);
 
-  const Watcher = await ethers.getContractFactory("Watcher");
   watcher = await upgrades.deployImplementation(Watcher);
 
-  const MintPasses = await ethers.getContractFactory("MintPasses", {
-    // libraries: {
-    //   RandomGenerator: randomGenerator.address,
-    // },
-  });
   mintPasses = await upgrades.deployImplementation(MintPasses);
 
-  const MintPassesHolder = await ethers.getContractFactory("MintPassesHolder");
   mintPassesHolder = await upgrades.deployImplementation(MintPassesHolder);
 
-  const Scion = await hre.ethers.getContractFactory("Scion", {
-    // libraries: {
-    //   RandomGenerator: randomGenerator.address,
-    // },
-  });
   scion = await upgrades.deployImplementation(Scion);
 
   // Staking
-  const Staking = await hre.ethers.getContractFactory("Staking");
   staking = await upgrades.deployImplementation(Staking);
 };
 
 const addContracts = async () => {
-  await registry.addContract("TREASURY", treasury);
+  await registry.addContract(args.TREASURY_ID, args.TREASURY_ADDRESS);
 
-  await registry.addContract("KETER", keter.address);
-  await registry.addContract("SOUL", soul.address);
+  await registry.addContract(args.KETER_ID, keter.address);
+  await registry.addContract(args.SOUL_ID, soul.address);
 };
 
-const addProxyContracts = async () => {
-  await registry.addProxyContract("ASSETS", assetsRegistry);
+const addProxies = async () => {
+  await registry.addProxyContract(args.ASSETS_ID, assetsRegistry);
 
-  await registry.addProxyContract("ARCHANGEL", archangel);
-  await registry.addProxyContract("WATCHER", watcher);
-  await registry.addProxyContract("MINTPASS", mintPasses);
-  await registry.addProxyContract("MINTPASS_HOLDER", mintPassesHolder);
-  await registry.addProxyContract("SCION", scion);
+  await registry.addProxyContract(args.ARCHANGEL_ID, archangel);
+  await registry.addProxyContract(args.WATCHER_ID, watcher);
+  await registry.addProxyContract(args.MINTPASS_ID, mintPasses);
+  await registry.addProxyContract(args.MINTPASS_HOLDER_ID, mintPassesHolder);
+  await registry.addProxyContract(args.SCION_ID, scion);
 
-  await registry.addProxyContract("STAKING", staking);
+  await registry.addProxyContract(args.STAKING_ID, staking);
 };
 
 const deployProxies = async () => {
   // Assets
-  const AssetsRegistry = await ethers.getContractFactory("AssetsRegistry");
-  assetsRegistry = await AssetsRegistry.attach(await registry.getContract("ASSETS"));
+  assetsRegistry = await AssetsRegistry.attach(await registry.getContract(args.ASSETS_ID));
 
   // ERC721
-  const Archangel = await ethers.getContractFactory("Archangel");
-  archangel = await Archangel.attach(await registry.getContract("ARCHANGEL"));
+  archangel = await Archangel.attach(await registry.getContract(args.ARCHANGEL_ID));
 
-  const Watcher = await ethers.getContractFactory("Watcher");
-  watcher = await Watcher.attach(await registry.getContract("WATCHER"));
+  watcher = await Watcher.attach(await registry.getContract(args.WATCHER_ID));
 
-  const MintPasses = await ethers.getContractFactory("MintPasses", {
-    // libraries: {
-    //   RandomGenerator: randomGenerator.address,
-    // },
-  });
-  mintPasses = await MintPasses.attach(await registry.getContract("MINTPASS"));
+  mintPasses = await MintPasses.attach(await registry.getContract(args.MINTPASS_ID));
 
-  const MintPassesHolder = await ethers.getContractFactory("MintPassesHolder");
-  mintPassesHolder = await MintPassesHolder.attach(await registry.getContract("MINTPASS_HOLDER"));
+  mintPassesHolder = await MintPassesHolder.attach(await registry.getContract(args.MINTPASS_HOLDER_ID));
 
-  const Scion = await hre.ethers.getContractFactory("Scion", {
-    // libraries: {
-    //   RandomGenerator: randomGenerator.address,
-    // },
-  });
-  scion = await Scion.attach(await registry.getContract("SCION"));
+  scion = await Scion.attach(await registry.getContract(args.SCION_ID));
 
   // Staking
-  const Staking = await hre.ethers.getContractFactory("Staking");
-  staking = await Staking.attach(await registry.getContract("STAKING"));
+  staking = await Staking.attach(await registry.getContract(args.STAKING_ID));
 };
 
 const initContracts = async () => {
   await assetsRegistry.__AssetRegistry_init();
-  await archangel.__Archangel_init("", registry.address);
-  await watcher.__Watcher_init("", registry.address);
+  await archangel.__Archangel_init(args.ARCHANGEL_NAME, args.ARCHANGEL_SYMBOL, args.ARCHANGEL_BASE_TOKEN_URI);
+  await watcher.__Watcher_init(args.WATCHER_NAME, args.WATCHER_SYMBOL, args.WATCHER_BASE_TOKEN_URI);
   await mintPasses.__MintPasses_init(
     args.MINT_PASS_NAME,
     args.MINT_PASS_SYMBOL,
     args.MINT_PASS_BASE_TOKEN_URI,
     args.MINT_PASS_MINIMUM_BID_AMOUNT,
-    args.MINT_PASS_AUCTION_DURATION,
-    registry.address
+    args.MINT_PASS_AUCTION_DURATION
   );
-  await mintPassesHolder.__MintPassesHolder_init(registry.address);
+  await mintPassesHolder.__MintPassesHolder_init();
   await scion.__Scion_init(
     args.SCION_NAME,
     args.SCION_SYMBOL,
     args.SCION_BASE_TOKEN_URI,
     args.DOWNGRADE,
     args.SAME_WEIGHT,
-    args.RARITY_PLUS,
-    registry.address
+    args.RARITY_PLUS
   );
-  await staking.__Staking_init(registry.address);
+  await staking.__Staking_init();
 };
 
 const setDependencies = async () => {
-  await archangel.setDependencies();
-  await watcher.setDependencies();
-  await mintPassesHolder.setDependencies();
-  await scion.setDependencies();
-  await staking.setDependencies();
+  await soul.setDependencies(registry.address);
+  await archangel.setDependencies(registry.address);
+  await watcher.setDependencies(registry.address);
+  await mintPasses.setDependencies(registry.address);
+  await mintPassesHolder.setDependencies(registry.address);
+  await scion.setDependencies(registry.address);
+  await staking.setDependencies(registry.address);
 };
 
 const setUpContracts = async (users) => {
@@ -278,6 +258,8 @@ const setUpContracts = async (users) => {
       weightLimits[5].top,
     ]
   );
+
+  treasury = registry.getContract(args.TREASURY_ID);
 };
 
 module.exports.init = init;

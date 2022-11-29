@@ -21,7 +21,6 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
-    Registry public registry;
     Soul public soul;
     Keter public keter;
     MintPasses public mintPasses;
@@ -90,11 +89,8 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
         string memory baseTokenURI,
         uint256 _downgrade,
         uint256 _sameWeight,
-        uint256 _rarityPlus,
-        address registryAddress
+        uint256 _rarityPlus
     ) external initializer {
-        registry = Registry(registryAddress);
-
         _baseTokenURI = baseTokenURI;
         _rerollChances = RerollChances(_downgrade, _sameWeight, _rarityPlus);
 
@@ -103,11 +99,11 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
         __ERC721_init(_name, _symbol);
     }
 
-    function setDependencies() external onlyOwner {
-        assetsRegistry = IAssetRegistry(registry.getContract("ASSETS"));
-        keter = Keter(registry.getContract("KETER"));
-        soul = Soul(registry.getContract("SOUL"));
-        mintPasses = MintPasses(registry.getContract("MINTPASS"));
+    function setDependencies(address registryAddress) external onlyOwner {
+        assetsRegistry = IAssetRegistry(Registry(registryAddress).getContract("ASSETS"));
+        keter = Keter(Registry(registryAddress).getContract("KETER"));
+        soul = Soul(Registry(registryAddress).getContract("SOUL"));
+        mintPasses = MintPasses(Registry(registryAddress).getContract("MINTPASS"));
     }
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {

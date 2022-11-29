@@ -1,9 +1,9 @@
 const { ZERO_ADDRESS } = require("@openzeppelin/test-helpers/src/constants");
 const { expect } = require("chai");
-const { args } = require("./helpers/arguments");
-const { Class, classLimits } = require("./helpers/classLimits");
-const { init } = require("./helpers/init");
-const { toBN, toWei, snapshot, restore, increaseTime, increaseTimeTo, getTime, getCosts } = require("./helpers/utils");
+const { args } = require("../helpers/arguments");
+const { Class, classLimits } = require("../helpers/classLimits");
+const { init } = require("../helpers/initTest");
+const { toBN, toWei, snapshot, restore, increaseTime, increaseTimeTo, getTime, getCosts } = require("../helpers/utils");
 
 describe("MintPasses", async () => {
   let mintPasses;

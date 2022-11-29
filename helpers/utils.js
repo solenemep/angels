@@ -58,6 +58,10 @@ async function getCosts(tx) {
   );
 }
 
+async function wait(ms) {
+  new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 module.exports = {
   toBN,
   toWei,
@@ -69,4 +73,5 @@ module.exports = {
   getCurrentBlock,
   advanceBlockTo,
   getCosts,
+  wait,
 };

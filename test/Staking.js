@@ -1,19 +1,8 @@
 const { expect } = require("chai");
-const { args } = require("./helpers/arguments");
-const { Class, classLimits } = require("./helpers/classLimits");
-const { init } = require("./helpers/init");
-const {
-  toBN,
-  toWei,
-  snapshot,
-  restore,
-  increaseTime,
-  increaseTimeTo,
-  getTime,
-  getCosts,
-  getCurrentBlock,
-  advanceBlockTo,
-} = require("./helpers/utils");
+const { args } = require("../helpers/arguments");
+const { Class, classLimits } = require("../helpers/classLimits");
+const { init } = require("../helpers/initTest");
+const { toBN, snapshot, restore, increaseTime, getTime, getCurrentBlock, advanceBlockTo } = require("../helpers/utils");
 
 describe("Staking", async () => {
   let staking;
@@ -23,7 +12,6 @@ describe("Staking", async () => {
   let owner;
   let user1, user2, user3;
   let bn;
-  let diffBlock;
 
   const bidValues = [
     toBN(args.MINT_PASS_MINIMUM_BID_AMOUNT).times(2).toString(),

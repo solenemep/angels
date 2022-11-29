@@ -11,13 +11,14 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import "./Registry.sol";
 import "./MintPasses.sol";
 
 // This is the main building block for smart contracts.
 contract MintPassesHolder is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    Registry public registry;
+    address public treasury;
     MintPasses public mintPasses;
 
     // promotion related
@@ -30,15 +31,14 @@ contract MintPassesHolder is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 timestamp
     );
 
-    function __MintPassesHolder_init(address registryAddress) external initializer {
-        registry = Registry(registryAddress);
-
+    function __MintPassesHolder_init() external initializer {
         __Ownable_init();
         __ReentrancyGuard_init();
     }
 
-    function setDependencies() external onlyOwner {
-        mintPasses = MintPasses(registry.getContract("MINTPASS"));
+    function setDependencies(address registryAddress) external onlyOwner {
+        treasury = Registry(registryAddress).getContract("TREASURY");
+        mintPasses = MintPasses(Registry(registryAddress).getContract("MINTPASS"));
     }
 
     function addPromotionMintingAddress(address _beneficiary) public onlyOwner nonReentrant {
@@ -64,7 +64,7 @@ contract MintPassesHolder is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         require(msg.value == promotionPrices[class], "There is not enough funds to buy");
         _promotionBeneficiaries.remove(_msgSender());
 
-        payable(registry.getContract("TREASURY")).transfer(msg.value);
+        payable(treasury).transfer(msg.value);
 
         mintPasses.transferFrom(address(this), _msgSender(), _tokenId);
     }

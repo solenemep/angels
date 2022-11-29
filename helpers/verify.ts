@@ -4,12 +4,20 @@ module.exports.buildVerifyScript = function (
   name: string,
   address: string,
   network: string,
-  args: string
+  args: string,
+  withL: boolean,
+  libraryPath: string,
 ) {
-  return {
+  if(withL) {
+    return { 
+      script: `npx hardhat verify --contract contracts/${name}.sol:${name} ${address} ${args} --libraries ${libraryPath} --network ${network}`,
+      name,
+    }
+  } else {
+  return { 
     script: `npx hardhat verify --contract contracts/${name}.sol:${name} ${address} ${args} --network ${network}`,
     name,
-  };
+  } }
 };
 
 module.exports.logVerifyScript = function (instance: {
