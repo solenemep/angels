@@ -477,6 +477,7 @@ async function main() {
   console.log("Scion address:", scion.address);
 
   (await mintPasses.setScionAddress(scion.address)).wait();
+  (await soul.setScionAddress(scion.address)).wait();
 
   await wait(30_000);
 
