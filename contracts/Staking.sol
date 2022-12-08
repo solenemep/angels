@@ -11,7 +11,8 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./Registry.sol";
-import "./Scion.sol";
+
+import "./interfaces/IScion.sol";
 
 /// @title NFT Staking
 /// @dev written with the help of https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
@@ -21,7 +22,7 @@ contract Staking is OwnableUpgradeable, ERC721Holder, ReentrancyGuardUpgradeable
     using SafeMath for uint256;
 
     IERC20 public keter;
-    Scion public scion;
+    IScion public scion;
 
     uint256 public rewardPerBlock;
     uint256 public totalNFTStaked;
@@ -48,7 +49,7 @@ contract Staking is OwnableUpgradeable, ERC721Holder, ReentrancyGuardUpgradeable
 
     function setDependencies(address registryAddress) external onlyOwner {
         keter = IERC20(Registry(registryAddress).getContract("KETER"));
-        scion = Scion(Registry(registryAddress).getContract("SCION"));
+        scion = IScion(Registry(registryAddress).getContract("SCION"));
     }
 
     modifier updateReward(address _account) {

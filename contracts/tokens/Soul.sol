@@ -7,7 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "../Registry.sol";
 import "../Scion.sol";
 
-contract Soul is Ownable, ERC20Burnable {
+import "../interfaces/tokens/ISoul.sol";
+
+contract Soul is ISoul, Ownable, ERC20Burnable {
     Scion public scion;
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
@@ -16,8 +18,10 @@ contract Soul is Ownable, ERC20Burnable {
         scion = Scion(Registry(registryAddress).getContract("SCION"));
     }
 
-    function mint(address to, uint256 amount) external {
+    function mint(address to, uint256 amount) external override {
         require(address(scion) == _msgSender() || owner() == _msgSender(), "Not allowed");
         _mint(to, amount);
     }
+
+    function burn(uint256 amount) public override(ISoul, ERC20Burnable) {}
 }

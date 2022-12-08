@@ -8,13 +8,14 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "./Registry.sol";
-import "./tokens/Soul.sol";
+
+import "./interfaces/tokens/ISoul.sol";
 
 contract Creature is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradeable {
     // Mint, receives the minting pass NFT, burns it to create a Scion
     using Counters for Counters.Counter;
 
-    Soul public soul;
+    ISoul public soul;
 
     uint256 public constant BATCH = 7;
 
@@ -39,7 +40,7 @@ contract Creature is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgra
     }
 
     function setDependencies(address registryAddress) external onlyOwner {
-        soul = Soul(Registry(registryAddress).getContract("SOUL"));
+        soul = ISoul(Registry(registryAddress).getContract("SOUL"));
     }
 
     function isOnSale(uint256 _tokenId) public view returns (bool) {

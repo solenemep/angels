@@ -15,12 +15,16 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./Registry.sol";
 
-import "./MintPassesHolder.sol";
-import "./Scion.sol";
-
 import "./libraries/RandomGenerator.sol";
 
-contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradeable {
+import "./interfaces/IMintPasses.sol";
+
+contract MintPasses is
+    IMintPasses,
+    OwnableUpgradeable,
+    ERC721Upgradeable,
+    ReentrancyGuardUpgradeable
+{
     using Counters for Counters.Counter;
     using EnumerableSet for EnumerableSet.UintSet;
     using Math for uint256;
@@ -29,8 +33,8 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
     Counters.Counter private _tokenIdTracker;
 
     address public treasury;
-    MintPassesHolder public mintPassesHolder;
-    Scion public scion;
+    address public mintPassesHolderAddress;
+    address public scionAddress;
 
     string private _baseTokenURI;
     uint256 private _latestBidId;
@@ -38,45 +42,8 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
     uint256 public minimumBidAmount;
     uint256 public auctionDuration;
 
-    enum Class {
-        NONE,
-        BRONZE,
-        SILVER,
-        GOLD,
-        PLATINUM,
-        RUBY,
-        ONYX
-    }
-
-    struct ClassLimits {
-        uint256 bottomBidValue;
-        uint256 topBidValue;
-        uint256 timestamp;
-        uint256 bottomAssetWeight;
-        uint256 topAssetWeight;
-    }
-
-    struct BidInfo {
-        uint256 bidIndex;
-        address bidder;
-        uint256 bidValue;
-        uint256 timestamp;
-        Class class;
-        bool claimed;
-    }
-
-    struct MintPassInfo {
-        Class class;
-        uint256 random;
-    }
-
-    enum ListOption {
-        ALL,
-        OWNED
-    }
-
     // class related
-    mapping(Class => ClassLimits) public classLimits;
+    mapping(Class => ClassLimits) public override classLimits;
 
     // bid related
     mapping(uint256 => BidInfo) public bidInfos; // bidIndex -> BidInfo
@@ -84,7 +51,7 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
     mapping(address => EnumerableSet.UintSet) internal _ownedBids; // user -> bidIndexes
 
     // mintPass related
-    mapping(uint256 => MintPassInfo) public mintPassInfos; // mintPassId -> MintPassInfo
+    mapping(uint256 => MintPassInfo) public override mintPassInfos; // mintPassId -> MintPassInfo
 
     event BidPlaced(
         address indexed bidder,
@@ -150,10 +117,8 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
 
     function setDependencies(address registryAddress) external onlyOwner {
         treasury = Registry(registryAddress).getContract("TREASURY");
-        mintPassesHolder = MintPassesHolder(
-            Registry(registryAddress).getContract("MINTPASS_HOLDER")
-        );
-        scion = Scion(Registry(registryAddress).getContract("SCION"));
+        mintPassesHolderAddress = Registry(registryAddress).getContract("MINTPASS_HOLDER");
+        scionAddress = Registry(registryAddress).getContract("SCION");
     }
 
     function isAuctionFinished() public view returns (bool) {
@@ -368,7 +333,7 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
         public
         view
         virtual
-        override(ERC721Upgradeable)
+        override(ERC721Upgradeable, IERC165Upgradeable)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
@@ -405,7 +370,7 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
     function mintPromotionPassBatch(Class[] memory classes) public onlyOwner {
         require(classes.length < 30, "Too many mintPass to mint");
         for (uint256 i = 0; i < classes.length; i++) {
-            _mintMintPass(address(mintPassesHolder), classes[i]);
+            _mintMintPass(mintPassesHolderAddress, classes[i]);
         }
     }
 
@@ -420,7 +385,7 @@ contract MintPasses is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpg
     }
 
     function burn(uint256 tokenId) external {
-        require(address(scion) == _msgSender(), "Only scion contract can burn");
+        require(scionAddress == _msgSender(), "Only scion contract can burn");
         _burn(tokenId);
     }
 }

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "./interfaces/IAssetRegistry.sol";
 
-contract AssetsRegistry is OwnableUpgradeable, IAssetRegistry {
+contract AssetsRegistry is IAssetRegistry, OwnableUpgradeable {
     using EnumerableSet for EnumerableSet.UintSet;
 
     uint256 private _latestAssetId;

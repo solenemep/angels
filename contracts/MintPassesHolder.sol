@@ -6,24 +6,24 @@ pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "./Registry.sol";
-import "./MintPasses.sol";
+
+import "./interfaces/IMintPasses.sol";
 
 // This is the main building block for smart contracts.
 contract MintPassesHolder is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     address public treasury;
-    MintPasses public mintPasses;
+    IMintPasses public mintPasses;
 
     // promotion related
     EnumerableSet.AddressSet internal _promotionBeneficiaries;
-    mapping(MintPasses.Class => uint256) public promotionPrices; // class -> price
+    mapping(IMintPasses.Class => uint256) public promotionPrices; // class -> price
 
     event PromotionPassClaimed(
         address indexed beneficiary,
@@ -38,7 +38,7 @@ contract MintPassesHolder is OwnableUpgradeable, ReentrancyGuardUpgradeable {
 
     function setDependencies(address registryAddress) external onlyOwner {
         treasury = Registry(registryAddress).getContract("TREASURY");
-        mintPasses = MintPasses(Registry(registryAddress).getContract("MINTPASS"));
+        mintPasses = IMintPasses(Registry(registryAddress).getContract("MINTPASS"));
     }
 
     function addPromotionMintingAddress(address _beneficiary) public onlyOwner nonReentrant {
@@ -46,7 +46,7 @@ contract MintPassesHolder is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         _promotionBeneficiaries.add(_beneficiary);
     }
 
-    function setPricePerClassPromotion(MintPasses.Class[] memory classes, uint256[] memory prices)
+    function setPricePerClassPromotion(IMintPasses.Class[] memory classes, uint256[] memory prices)
         public
         onlyOwner
     {
@@ -57,7 +57,7 @@ contract MintPassesHolder is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     function buyPromotionMintPass(uint256 _tokenId) external payable nonReentrant {
-        (MintPasses.Class class, ) = mintPasses.mintPassInfos(_tokenId);
+        (IMintPasses.Class class, ) = mintPasses.mintPassInfos(_tokenId);
         require(promotionPrices[class] > 0, "Prices not set yet");
         require(_promotionBeneficiaries.contains(_msgSender()), "Not beneficiary");
 

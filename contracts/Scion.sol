@@ -11,19 +11,19 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./Registry.sol";
 
-import "./MintPasses.sol";
-import "./tokens/Soul.sol";
-
 import "./libraries/RandomGenerator.sol";
+
 import "./interfaces/IAssetRegistry.sol";
+import "./interfaces/tokens/ISoul.sol";
+import "./interfaces/IMintPasses.sol";
 
 contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradeable {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
-    Soul public soul;
+    ISoul public soul;
     IERC20 public keter;
-    MintPasses public mintPasses;
+    IMintPasses public mintPasses;
     IAssetRegistry public assetsRegistry;
 
     Counters.Counter private _tokenIdTracker;
@@ -102,8 +102,8 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
     function setDependencies(address registryAddress) external onlyOwner {
         assetsRegistry = IAssetRegistry(Registry(registryAddress).getContract("ASSETS"));
         keter = IERC20(Registry(registryAddress).getContract("KETER"));
-        soul = Soul(Registry(registryAddress).getContract("SOUL"));
-        mintPasses = MintPasses(Registry(registryAddress).getContract("MINTPASS"));
+        soul = ISoul(Registry(registryAddress).getContract("SOUL"));
+        mintPasses = IMintPasses(Registry(registryAddress).getContract("MINTPASS"));
     }
 
     modifier onlyApprovedOrOwner(uint256 tokenId) {
@@ -457,7 +457,7 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
         uint256 _tokenId,
         uint256 _mintPassId
     ) internal {
-        (MintPasses.Class class, uint256 salt) = mintPasses.mintPassInfos(_mintPassId);
+        (IMintPasses.Class class, uint256 salt) = mintPasses.mintPassInfos(_mintPassId);
         (, , , uint256 bottom, uint256 top) = mintPasses.classLimits(class);
 
         IAssetRegistry.AssetInfo[] memory assetsPerTypePerWeightRange = assetsRegistry
