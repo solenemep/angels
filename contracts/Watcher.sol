@@ -1,11 +1,9 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
 import "./Creature.sol";
 
-contract Watcher is Initializable, Creature {
+contract Watcher is Creature {
     function __Watcher_init(
         string memory _name,
         string memory _symbol,

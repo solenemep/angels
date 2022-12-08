@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -12,7 +13,6 @@ import "./Registry.sol";
 
 import "./MintPasses.sol";
 import "./tokens/Soul.sol";
-import "./tokens/Keter.sol";
 
 import "./libraries/RandomGenerator.sol";
 import "./interfaces/IAssetRegistry.sol";
@@ -22,7 +22,7 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
     using SafeMath for uint256;
 
     Soul public soul;
-    Keter public keter;
+    IERC20 public keter;
     MintPasses public mintPasses;
     IAssetRegistry public assetsRegistry;
 
@@ -101,7 +101,7 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
 
     function setDependencies(address registryAddress) external onlyOwner {
         assetsRegistry = IAssetRegistry(Registry(registryAddress).getContract("ASSETS"));
-        keter = Keter(Registry(registryAddress).getContract("KETER"));
+        keter = IERC20(Registry(registryAddress).getContract("KETER"));
         soul = Soul(Registry(registryAddress).getContract("SOUL"));
         mintPasses = MintPasses(Registry(registryAddress).getContract("MINTPASS"));
     }

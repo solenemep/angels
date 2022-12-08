@@ -5,13 +5,13 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./Registry.sol";
 import "./Scion.sol";
-import "./tokens/Keter.sol";
 
 /// @title NFT Staking
 /// @dev written with the help of https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
@@ -20,7 +20,7 @@ contract Staking is OwnableUpgradeable, ERC721Holder, ReentrancyGuardUpgradeable
     using EnumerableSet for EnumerableSet.UintSet;
     using SafeMath for uint256;
 
-    Keter public keter;
+    IERC20 public keter;
     Scion public scion;
 
     uint256 public rewardPerBlock;
@@ -47,7 +47,7 @@ contract Staking is OwnableUpgradeable, ERC721Holder, ReentrancyGuardUpgradeable
     }
 
     function setDependencies(address registryAddress) external onlyOwner {
-        keter = Keter(Registry(registryAddress).getContract("KETER"));
+        keter = IERC20(Registry(registryAddress).getContract("KETER"));
         scion = Scion(Registry(registryAddress).getContract("SCION"));
     }
 
