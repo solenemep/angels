@@ -42,43 +42,6 @@ const init = async () => {
   await setDependencies();
   await setUpContracts(users);
 
-  //   // Library
-  //   const RandomGenerator = await ethers.getContractFactory("RandomGenerator");
-  //   randomGenerator = await RandomGenerator.attach(addresses[network].randomGeneratorAddress);
-  //   // Registry
-  //   const Registry = await ethers.getContractFactory("Registry");
-  //   registry = await Registry.attach(addresses[network].registryAddress);
-  //   // Assets
-  //   const AssetsRegistry = await ethers.getContractFactory("AssetsRegistry");
-  //   assetsRegistry = await AssetsRegistry.attach(addresses[network].assetsRegistryAddress);
-  //   // ERC20
-  //   const Keter = await ethers.getContractFactory("Keter");
-  //   keter = await Keter.attach(addresses[network].keterAddress);
-  //   const Soul = await ethers.getContractFactory("Soul");
-  //   soul = await Soul.attach(addresses[network].soulAddress);
-  //   // ERC721
-  //   const Archangel = await ethers.getContractFactory("Archangel");
-  //   archangel = await Archangel.attach(addresses[network].archangelAddress);
-  //   const Watcher = await ethers.getContractFactory("Watcher");
-  //   watcher = await Watcher.attach(addresses[network].watcherAddress);
-  //   const MintPasses = await ethers.getContractFactory("MintPasses", {
-  //     libraries: {
-  //       RandomGenerator: randomGenerator.address,
-  //     },
-  //   });
-  //   mintPasses = await MintPasses.attach(addresses[network].mintPassesAddress);
-  //   const MintPassesHolder = await ethers.getContractFactory("MintPassesHolder");
-  //   mintPassesHolder = await MintPassesHolder.attach(addresses[network].mintPassesHolderAddress);
-  //   const Scion = await ethers.getContractFactory("Scion", {
-  //     libraries: {
-  //       RandomGenerator: randomGenerator.address,
-  //     },
-  //   });
-  //   scion = await Scion.attach(addresses[network].scionAddress);
-  //   // Staking
-  //   const Staking = await ethers.getContractFactory("Staking");
-  //   staking = await Staking.attach(addresses[network].stakingAddress);
-
   return {
     users,
     treasury,
@@ -103,17 +66,9 @@ const getContractFactory = async () => {
   AssetsRegistry = await ethers.getContractFactory("AssetsRegistry");
   Archangel = await ethers.getContractFactory("Archangel");
   Watcher = await ethers.getContractFactory("Watcher");
-  MintPasses = await ethers.getContractFactory("MintPasses", {
-    // libraries: {
-    //   RandomGenerator: randomGenerator.address,
-    // },
-  });
+  MintPasses = await ethers.getContractFactory("MintPasses", {});
   MintPassesHolder = await ethers.getContractFactory("MintPassesHolder");
-  Scion = await ethers.getContractFactory("Scion", {
-    // libraries: {
-    //   RandomGenerator: randomGenerator.address,
-    // },
-  });
+  Scion = await ethers.getContractFactory("Scion", {});
   Staking = await ethers.getContractFactory("Staking");
 };
 
@@ -262,4 +217,4 @@ const setUpContracts = async (users) => {
   treasury = registry.getContract(args.TREASURY_ID);
 };
 
-module.exports.init = init;
+exports.init = init;

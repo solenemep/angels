@@ -126,11 +126,10 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
         return _baseTokenURI;
     }
 
-    function rerollChances(uint256 _assetId, uint256 weight)
-        public
-        view
-        returns (RerollChances memory)
-    {
+    function rerollChances(
+        uint256 _assetId,
+        uint256 weight
+    ) public view returns (RerollChances memory) {
         if (assetsRegistry.uniqueWeightsForType(_assetId)[0] == weight) {
             return
                 RerollChances(
@@ -185,19 +184,18 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
         _price =
             MAX_WEIGHT -
             (_actualWeight + _wantedWeight) +
-            ((_actualWeight - _wantedWeight) / _wantedWeight**2);
+            ((_actualWeight - _wantedWeight) / _wantedWeight ** 2);
     }
 
-    function getPricePerAsset(uint256 tokenId, uint256 assetWeight)
-        external
-        view
-        returns (uint256)
-    {
+    function getPricePerAsset(
+        uint256 tokenId,
+        uint256 assetWeight
+    ) external view returns (uint256) {
         return getPriceEntireScion(tokenId).mul(assetWeight).div(getScionWeight(tokenId));
     }
 
     function getPriceEntireScion(uint256 tokenId) public view returns (uint256) {
-        return (1250000 * 10**soul.decimals()).div(getScionWeight(tokenId));
+        return (1250000 * 10 ** soul.decimals()).div(getScionWeight(tokenId));
     }
 
     function burnForSoul(uint256 tokenId) external nonReentrant {
@@ -415,12 +413,12 @@ contract Scion is OwnableUpgradeable, ERC721Upgradeable, ReentrancyGuardUpgradea
         require(assetId <= 6);
         uint256 _price = rerollPrice(tokenId, assetId);
 
-        keter.transferFrom(_msgSender(), address(this), _price * 10**18);
+        keter.transferFrom(_msgSender(), address(this), _price * 10 ** 18);
         rerollCalculate(
             RandomGenerator.random(_msgSender(), BP, 0),
             assetId,
             tokenId,
-            _price * 10**18
+            _price * 10 ** 18
         );
     }
 

@@ -3,8 +3,8 @@
   "proxies": [],
   "impls": {
     "46b8e07100f2d58c93751e533d1cf2d2a90b61ad314ae8e7c286bb7e8000d77b": {
-      "address": "0x90b97E83e22AFa2e6A96b3549A0E495D5Bae61aF",
-      "txHash": "0x853e16ba979a37ad77b674e8458d05185d75e72b820f949f8564f94776b1b89a",
+      "address": "0xb6aA91E8904d691a10372706e57aE1b390D26353",
+      "txHash": "0xea37ca15fa08d5cae60f69581a9356bce3516c90ed9f1270ba0858354b3fb632",
       "layout": {
         "solcVersion": "0.8.10",
         "storage": [
@@ -219,8 +219,8 @@
       }
     },
     "eec0fc30d7a6fdf23731b0e02047fcaf0d0a058ac759b7e31071c836ab5cacdc": {
-      "address": "0xdb54fa574a3e8c6aC784e1a5cdB575A737622CFf",
-      "txHash": "0x26958d4a2d1ba58754c5bef972c6cbda3816ad8c833489e897a0999393f5d0e1",
+      "address": "0x6fFa22292b86D678fF6621eEdC9B15e68dC44DcD",
+      "txHash": "0x5311d037731f4b1adebc63d6325ccf3f1379fdda8ddfe22cf0630ff92d629b89",
       "layout": {
         "solcVersion": "0.8.10",
         "storage": [
@@ -455,8 +455,8 @@
       }
     },
     "daddc530b2971670d0b00f5e123107a129b845fea544b09703191bec69603c0f": {
-      "address": "0xDDa0648FA8c9cD593416EC37089C2a2E6060B45c",
-      "txHash": "0x97e18e8ccf776699e99cde895e911de85283ebb52f1e0901442d0959ed8e2d63",
+      "address": "0x11632F9766Ee9d9317F95562a6bD529652ead78f",
+      "txHash": "0x0924aa7e76ac2c5e4862ac06c653f7ce6bb86c9485275d4047122efbd84c4974",
       "layout": {
         "solcVersion": "0.8.10",
         "storage": [
@@ -691,8 +691,8 @@
       }
     },
     "81cd3e9d74d304dca562fa84619f6f709168522eb3548c9b9fc4024116dd0ee5": {
-      "address": "0x6A47346e722937B60Df7a1149168c0E76DD6520f",
-      "txHash": "0xa240adc81dbc280dc4e0cec291fe32171b914633b0acb1efc8417f4413e85f93",
+      "address": "0xf93b0549cD50c849D792f0eAE94A598fA77C7718",
+      "txHash": "0xc07ab4c59ac6d4de011ba873d31e0899c5bf85c0322ca304173be636d2c4d6ce",
       "layout": {
         "solcVersion": "0.8.10",
         "storage": [
@@ -917,8 +917,8 @@
       }
     },
     "1787f69b763ae9ea9305965c32df0e2977ea740715674ce9a1ab1cb01de35374": {
-      "address": "0xccA9728291bC98ff4F97EF57Be3466227b0eb06C",
-      "txHash": "0xd8ebc15e8218235b6d47020cf166822c578299c8ede9b564ae018d9c0f827907",
+      "address": "0x4f1F87d512650f32bf9949C4c5Ef37a3cc891C6D",
+      "txHash": "0xd093071b96ee62d76c13d05e47f7cbfbef4e2835937b0830ec7c9e3091a95e39",
       "layout": {
         "solcVersion": "0.8.10",
         "storage": [
@@ -1388,8 +1388,8 @@
       }
     },
     "ecc0188718d17494a3989040dc92289ee80626d07a655ca9a0c96d2f50550901": {
-      "address": "0xc6B407503dE64956Ad3cF5Ab112cA4f56AA13517",
-      "txHash": "0x4fa9657e7e267797a061ee48681d4cfca1cba9285ae0299c869a95432ccbb036",
+      "address": "0x499AA73A1D27e54B33E7DB05ffd22854EC70257E",
+      "txHash": "0xf4aad8b0c21bda7d6f9763973b8548b43a13ec3a75195c22bb5b6558cdf9e67e",
       "layout": {
         "solcVersion": "0.8.10",
         "storage": [
@@ -1575,8 +1575,8 @@
       }
     },
     "0681fc8daf1ac0d356d130697fe13db4f27b0cf245bb107ecd4600493d260804": {
-      "address": "0x3a622DB2db50f463dF562Dc5F341545A64C580fc",
-      "txHash": "0x27f9efc5f6fe1a1781ccf54fdf0e222172828eac5f00afda60c78e0d02fefdb1",
+      "address": "0x4c04377f90Eb1E42D845AB21De874803B8773669",
+      "txHash": "0x3a1dd0de1a755e69f66aefe2c7dcbf1d753997a80089ccf1bf1a0a93bf414c13",
       "layout": {
         "solcVersion": "0.8.10",
         "storage": [
@@ -1705,7 +1705,7 @@
             "label": "soul",
             "offset": 0,
             "slot": "251",
-            "type": "t_contract(ISoul)11179",
+            "type": "t_contract(ISoul)7437",
             "contract": "Scion",
             "src": "contracts/Scion.sol:24"
           },
@@ -1721,7 +1721,7 @@
             "label": "mintPasses",
             "offset": 0,
             "slot": "253",
-            "type": "t_contract(IMintPasses)11143",
+            "type": "t_contract(IMintPasses)7419",
             "contract": "Scion",
             "src": "contracts/Scion.sol:26"
           },
@@ -1729,7 +1729,7 @@
             "label": "assetsRegistry",
             "offset": 0,
             "slot": "254",
-            "type": "t_contract(IAssetRegistry)11064",
+            "type": "t_contract(IAssetRegistry)7340",
             "contract": "Scion",
             "src": "contracts/Scion.sol:27"
           },
@@ -1737,7 +1737,7 @@
             "label": "_tokenIdTracker",
             "offset": 0,
             "slot": "255",
-            "type": "t_struct(Counter)4739_storage",
+            "type": "t_struct(Counter)4694_storage",
             "contract": "Scion",
             "src": "contracts/Scion.sol:29"
           },
@@ -1753,7 +1753,7 @@
             "label": "scionsData",
             "offset": 0,
             "slot": "257",
-            "type": "t_mapping(t_uint256,t_struct(Scions)8695_storage)",
+            "type": "t_mapping(t_uint256,t_struct(Scions)5536_storage)",
             "contract": "Scion",
             "src": "contracts/Scion.sol:55"
           },
@@ -1761,7 +1761,7 @@
             "label": "_rerollChances",
             "offset": 0,
             "slot": "258",
-            "type": "t_struct(RerollChances)8702_storage",
+            "type": "t_struct(RerollChances)5543_storage",
             "contract": "Scion",
             "src": "contracts/Scion.sol:58"
           }
@@ -1787,7 +1787,7 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(IAssetRegistry)11064": {
+          "t_contract(IAssetRegistry)7340": {
             "label": "contract IAssetRegistry",
             "numberOfBytes": "20"
           },
@@ -1795,11 +1795,11 @@
             "label": "contract IERC20",
             "numberOfBytes": "20"
           },
-          "t_contract(IMintPasses)11143": {
+          "t_contract(IMintPasses)7419": {
             "label": "contract IMintPasses",
             "numberOfBytes": "20"
           },
-          "t_contract(ISoul)11179": {
+          "t_contract(ISoul)7437": {
             "label": "contract ISoul",
             "numberOfBytes": "20"
           },
@@ -1819,7 +1819,7 @@
             "label": "mapping(uint256 => address)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint256,t_struct(Scions)8695_storage)": {
+          "t_mapping(t_uint256,t_struct(Scions)5536_storage)": {
             "label": "mapping(uint256 => struct Scion.Scions)",
             "numberOfBytes": "32"
           },
@@ -1827,7 +1827,7 @@
             "label": "string",
             "numberOfBytes": "32"
           },
-          "t_struct(AssetInfo)11003_storage": {
+          "t_struct(AssetInfo)7279_storage": {
             "label": "struct IAssetRegistry.AssetInfo",
             "members": [
               {
@@ -1857,7 +1857,7 @@
             ],
             "numberOfBytes": "128"
           },
-          "t_struct(Counter)4739_storage": {
+          "t_struct(Counter)4694_storage": {
             "label": "struct Counters.Counter",
             "members": [
               {
@@ -1869,7 +1869,7 @@
             ],
             "numberOfBytes": "32"
           },
-          "t_struct(RerollChances)8702_storage": {
+          "t_struct(RerollChances)5543_storage": {
             "label": "struct Scion.RerollChances",
             "members": [
               {
@@ -1893,48 +1893,48 @@
             ],
             "numberOfBytes": "96"
           },
-          "t_struct(Scions)8695_storage": {
+          "t_struct(Scions)5536_storage": {
             "label": "struct Scion.Scions",
             "members": [
               {
                 "label": "background",
-                "type": "t_struct(AssetInfo)11003_storage",
+                "type": "t_struct(AssetInfo)7279_storage",
                 "offset": 0,
                 "slot": "0"
               },
               {
                 "label": "halo",
-                "type": "t_struct(AssetInfo)11003_storage",
+                "type": "t_struct(AssetInfo)7279_storage",
                 "offset": 0,
                 "slot": "4"
               },
               {
                 "label": "head",
-                "type": "t_struct(AssetInfo)11003_storage",
+                "type": "t_struct(AssetInfo)7279_storage",
                 "offset": 0,
                 "slot": "8"
               },
               {
                 "label": "body",
-                "type": "t_struct(AssetInfo)11003_storage",
+                "type": "t_struct(AssetInfo)7279_storage",
                 "offset": 0,
                 "slot": "12"
               },
               {
                 "label": "wings",
-                "type": "t_struct(AssetInfo)11003_storage",
+                "type": "t_struct(AssetInfo)7279_storage",
                 "offset": 0,
                 "slot": "16"
               },
               {
                 "label": "hands",
-                "type": "t_struct(AssetInfo)11003_storage",
+                "type": "t_struct(AssetInfo)7279_storage",
                 "offset": 0,
                 "slot": "20"
               },
               {
                 "label": "sigil",
-                "type": "t_struct(AssetInfo)11003_storage",
+                "type": "t_struct(AssetInfo)7279_storage",
                 "offset": 0,
                 "slot": "24"
               }
